@@ -200,6 +200,18 @@ nav.bottom button svg{display:block}
   .filters{border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -10px rgba(15,23,42,.12)}
 }
 @media (prefers-color-scheme:dark){@media(min-width:1024px){nav.top{background:linear-gradient(180deg,#16294d,#0f1d38)}}}
+/* 월별 추이 차트(HTML) · 분기별 표 가독성 */
+.chart{display:flex;align-items:flex-end;gap:clamp(6px,1.2vw,16px);padding:4px 4px 0;border-bottom:1px solid var(--line)}
+.chart .cc{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.chart .cv{font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:4px;min-height:17px;font-variant-numeric:tabular-nums}
+.chart .cb{width:62%;max-width:46px;border-radius:5px 5px 0 0;overflow:hidden;display:flex;flex-direction:column}
+.chart .cb i{display:block;width:100%}.chart .cb .f{background:var(--face)}.chart .cb .o{background:var(--online)}
+.chart .cl{font-size:12.5px;color:var(--muted);margin-top:8px;height:22px;white-space:nowrap}
+.chart{position:relative}
+.qt table{font-size:15px}
+.qt th{font-size:13px}
+.qt th,.qt td{padding:11px 12px}
+.qt tfoot td{font-size:15.5px}
 @media(max-width:480px){.hero .big{font-size:32px}.hero .card{padding:14px}}
 </style>
 </head>

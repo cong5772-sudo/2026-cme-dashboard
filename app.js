@@ -85,18 +85,14 @@ function prevOf() {
 }
 
 /* ---------- 공통 UI ---------- */
-function chart(items, h = 150) {
-  const W = 640, pad = 22, bw = W / items.length, max = Math.max(1, ...items.map(i => i.f + i.o));
-  const sc = (h - pad - 14) / max;
-  const bars = items.map((it, i) => {
-    const x = i * bw + bw * .18, w = bw * .64, hf = it.f * sc, ho = it.o * sc, y0 = h - pad;
-    return `<g><title>${it.label}: 대면 ${it.f}명 · 온라인 ${it.o}명</title>
-      <rect x="${x}" y="${y0 - hf}" width="${w}" height="${hf}" fill="var(--face)" rx="2"/>
-      <rect x="${x}" y="${y0 - hf - ho}" width="${w}" height="${ho}" fill="var(--online)" rx="2"/>
-      ${it.f + it.o ? `<text x="${x + w / 2}" y="${y0 - hf - ho - 4}" text-anchor="middle" font-size="11" fill="var(--ink2)">${it.f + it.o}</text>` : ''}
-      <text x="${x + w / 2}" y="${h - 6}" text-anchor="middle" font-size="11" fill="var(--muted)">${it.label}</text></g>`;
+function chart(items, h = 190) {
+  const max = Math.max(1, ...items.map(i => i.f + i.o));
+  const cols = items.map(it => {
+    const t = it.f + it.o, bh = t ? Math.max(4, t / max * h) : 0;
+    const fh = t ? it.f / t * 100 : 0;
+    return `<div class="cc" title="${it.label}: 대면 ${it.f}명 · 온라인 ${it.o}명"><div class="cv">${t || ''}</div><div class="cb" style="height:${bh.toFixed(1)}px"><i class="o" style="height:${(100 - fh).toFixed(1)}%"></i><i class="f" style="height:${fh.toFixed(1)}%"></i></div><div class="cl">${it.label}</div></div>`;
   }).join('');
-  return `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img" aria-label="대면·온라인 이수 추이">${bars}</svg>
+  return `<div class="chart" style="height:${h + 46}px" role="img" aria-label="대면·온라인 이수 추이">${cols}</div>
     <div class="legend"><span><i style="background:var(--face)"></i>대면</span><span><i style="background:var(--online)"></i>온라인</span></div>`;
 }
 const kpi = (l, v, s, cls = '', top = '') => `<div class="card ${top}"><div class="lbl">${l}</div><div class="big ${cls}">${v}</div><div class="sub">${s || ''}</div></div>`;
@@ -145,7 +141,7 @@ function p1() {
     ${kpi('온라인 관리기준', over ? '초과' : '이내', `기준 ${Math.round(LIMIT * 100)}% · 현재 ${pct(c.o, c.t)}`, over ? 'c-crit' : 'c-ok', over ? 't-crit' : 't-ok')}
   </div>${cmp ? `<div style="margin-bottom:12px">${cmp}</div>` : ''}
   <section class="card" style="margin-bottom:12px"><h2>${S.year === 'all' ? '연도별' : '월별'} 이수 추이</h2><p class="hint">${lbl}${noMonth ? ` · 교육일 미상 ${noMonth}건은 월별에서 제외` : ''}</p>${chart(items)}</section>
-  <section class="card"><h2>분기별 현황</h2><div class="tw"><table><thead><tr><th>분기</th><th class="num">이수(명)</th><th class="num">대면(명/비율)</th><th class="num">온라인(명/비율)</th></tr></thead><tbody>${qrows}</tbody><tfoot><tr><td>합계${noMonth ? ` <span class="tag">월 미상 ${noMonth}건 포함</span>` : ''}</td><td class="num">${c.t}</td><td class="num">${c.f} (${pct(c.f, c.t)})</td><td class="num">${c.o} (${pct(c.o, c.t)})</td></tr></tfoot></table></div></section>`;
+  <section class="card qt"><h2>분기별 현황</h2><div class="tw"><table><thead><tr><th>분기</th><th class="num">이수(명)</th><th class="num">대면(명/비율)</th><th class="num">온라인(명/비율)</th></tr></thead><tbody>${qrows}</tbody><tfoot><tr><td>합계${noMonth ? ` <span class="tag">월 미상 ${noMonth}건 포함</span>` : ''}</td><td class="num">${c.t}</td><td class="num">${c.f} (${pct(c.f, c.t)})</td><td class="num">${c.o} (${pct(c.o, c.t)})</td></tr></tfoot></table></div></section>`;
 }
 
 /* ---------- 페이지 2 ---------- */
