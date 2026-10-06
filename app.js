@@ -17,7 +17,7 @@ const ICON = {
 };
 const PAGES = [['p1', '보수교육 현황', false], ['p2', '부서별 분석', false], ['p3', '기타교육', true], ['p4', '간호조무사', false], ['p5', '관리점검', true]];
 
-const S = { page: 'p1', year: null, ms: [], grp: 'all', dept: 'all', view: 'list', search: '',
+const S = { page: 'p1', year: null, ms: [], sub: 'all', grp: 'all', dept: 'all', view: 'list', search: '',
   kind: { rp: true, at: false, ins: false, err: false }, pw: '', pwErr: '' };
 try { S.pw = sessionStorage.getItem('cme.pw') || ''; } catch (e) {}
 let RAW = null, REC = [], LOCKED = true, SAMPLE = false;
@@ -68,8 +68,10 @@ function msText() {
   const parts = []; for (let i = 0; i < ms.length;) { let j = i; while (ms[j + 1] === ms[j] + 1) j++; parts.push(j - i >= 2 ? `${ms[i]}~${ms[j]}` : ms.slice(i, j + 1).join('·')); i = j + 1; }
   return parts.join(', ') + '월';
 }
+const deptOk = r => (S.dept === 'all' || r.dept === S.dept) && (S.sub === 'all' || r.sub === S.sub);
+const deptText = () => S.dept === 'all' ? '' : S.dept + (S.sub !== 'all' && S.sub !== S.dept ? `(${S.sub})` : '');
 const inP = r => r.y != null && (S.year === 'all' || r.y === S.year) &&
-  (!S.ms.length || (r.m && S.ms.includes(r.m)));
+  (!S.ms.length || (r.m && S.ms.includes(r.m))) && deptOk(r);
 const bo = () => REC.filter(r => !r.j && r.g === '보수' && r.f && r.y != null);
 const cnt = rows => ({ t: rows.length, f: rows.filter(r => r.f === '대면').length, o: rows.filter(r => r.f === '온라인').length });
 const years = () => [...new Set(REC.filter(r => r.y != null).map(r => r.y))].sort((a, b) => b - a);
@@ -77,10 +79,10 @@ const years = () => [...new Set(REC.filter(r => r.y != null).map(r => r.y))].sor
 function prevOf() {
   if (S.year === 'all') return null;
   const y = S.year - 1;
-  const rows = bo().filter(r => r.y === y && (!S.ms.length || (r.m && S.ms.includes(r.m))));
+  const rows = bo().filter(r => r.y === y && deptOk(r) && (!S.ms.length || (r.m && S.ms.includes(r.m))));
   if (rows.length) { const c = cnt(rows); return { y, total: c.t, face: c.f, online: c.o, src: '시트 데이터' }; }
   const p = (CFG.PREV_STATIC || {})[y];
-  if (p && !S.ms.length) return { y, ...p, src: p.note || '고정 실적' };
+  if (p && !S.ms.length && S.dept === 'all') return { y, ...p, src: p.note || '고정 실적' };
   return null;
 }
 
@@ -109,7 +111,7 @@ function gate(title) {
 /* ---------- 페이지 1 ---------- */
 function p1() {
   const rows = bo().filter(inP), c = cnt(rows), pv = prevOf();
-  const lbl = S.year === 'all' ? '전체 누적' : `${S.year}년${msText() ? ' ' + msText() : ''}`;
+  const lbl = S.year === 'all' ? '전체 누적' : `${S.year}년${msText() ? ' ' + msText() : ''}${deptText() ? ' · ' + deptText() : ''}`;
   const over = c.t && c.o / c.t > LIMIT;
   const dl = (now, was) => { const d = (now - was) * 100; return Math.abs(d) < 0.05 ? '전년과 동일' : `${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%p vs ${pv.y}`; };
   const pb = pv ? pv.total + (pv.exempt || 0) : 0;
@@ -178,7 +180,7 @@ function p2() {
   return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${cards}</div>
   <section class="card"><div class="tools"><span class="fl">구분</span>${[['all', '전체'], ...GROUPS.map(([g]) => [g, g])].map(([v, l]) => `<button class="chip" data-act="grp" data-v="${esc(v)}" aria-pressed="${S.grp === v}">${esc(l)}</button>`).join('')}
     ${nOver ? `<span class="tag crit">온라인 ${Math.round(LIMIT * 100)}% 초과 ${nOver}곳</span>` : '<span class="tag good">온라인 기준 이내</span>'}</div>
-  <div class="printhead"><h1>부서별 보수교육 이수 현황</h1><div class="pmeta"><span><b>기준일시</b> ${periodLabel()}</span><span><b>구분</b> ${S.grp === 'all' ? '전체' : esc(S.grp)}</span><span><b>출력일시</b> ${printStamp()}</span></div>
+  <div class="printhead"><h1>부서별 보수교육 이수 현황</h1><div class="pmeta"><span><b>기준일시</b> ${periodLabel()}</span><span><b>${S.dept === 'all' ? '구분' : '부서'}</b> ${S.dept !== 'all' ? esc(deptText()) : S.grp === 'all' ? '전체' : esc(S.grp)}</span><span><b>출력일시</b> ${printStamp()}</span></div>
   <div class="psum">총 이수 <b>${num(tot.f + tot.o)}명</b> · 대면 <b>${num(tot.f)}명</b> (${pct(tot.f, tot.f + tot.o)}) · 온라인 <b>${num(tot.o)}명</b> (${pct(tot.o, tot.f + tot.o)})</div></div>
   <div class="screen-only tools" style="justify-content:flex-end"><button class="chip" data-act="print" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">🖨 PDF 출력 (A4 1장)</button></div>
   <h2 class="screen-only">부서별 보수교육 이수 현황</h2><p class="hint">부서 구분은 신규간호사 대시보드 기준 · 간호조무사 제외 · 교육 당시 부서 기준</p>
@@ -192,9 +194,8 @@ function p2() {
 function p3() {
   if (LOCKED) return gate('기타교육 이수 명단');
   const all = REC.filter(r => !r.j && r.g === '기타' && inP(r));
-  const depts = [...new Set(all.map(r => r.dept))].sort();
   const q = S.search.trim();
-  const rows = all.filter(r => (S.dept === 'all' || r.dept === S.dept) && (!q || r.name.includes(q) || r.title.includes(q) || r.emp.includes(q)))
+  const rows = all.filter(r => (!q || r.name.includes(q) || r.title.includes(q) || r.emp.includes(q)))
     .sort((a, b) => (a.iso || '9').localeCompare(b.iso || '9') || a.dept.localeCompare(b.dept));
   const edu = new Set(rows.map(r => r.title + '|' + r.iso)).size;
   const th = '<thead><tr><th>교육일</th><th>부서</th><th>이름</th><th>사원번호</th><th>교육명</th></tr></thead>';
@@ -205,8 +206,7 @@ function p3() {
     tbl = th + '<tbody>' + [...m.values()].map(l => `<tr class="gh"><td colspan="5">${dshort(l[0])} · ${esc(l[0].title)} <span class="tag">${l.length}명</span></td></tr>${l.map(tr).join('')}`).join('') + '</tbody>';
   } else tbl = th + `<tbody>${rows.map(tr).join('') || '<tr><td colspan="5" class="msg">해당 조건의 명단이 없습니다.</td></tr>'}</tbody>`;
   return `<div class="grid k2">${kpi('기타교육 참석', `${rows.length}명`, '간호조무사 제외')}${kpi('교육 건수', `${edu}건`, '교육명·일자 기준')}</div>
-  <section class="card"><div class="tools"><select data-act="dept" aria-label="부서"><option value="all">부서 전체</option>${depts.map(d => `<option ${S.dept === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select>
-    <input type="search" id="q" placeholder="이름·사번·교육명 검색" value="${esc(S.search)}">
+  <section class="card"><div class="tools"><input type="search" id="q" placeholder="이름·사번·교육명 검색" value="${esc(S.search)}">
     <button class="chip" data-act="view" data-v="list" aria-pressed="${S.view === 'list'}">목록</button><button class="chip" data-act="view" data-v="edu" aria-pressed="${S.view === 'edu'}">교육별</button></div>
   <div class="tw"><table>${tbl}</table></div></section>`;
 }
@@ -255,11 +255,22 @@ function p5() {
 }
 
 /* ---------- 렌더링 ---------- */
+// 부서 콤보 목록: 부서군 순서대로, 세부부서는 선택한 부서의 것만
+function deptOptions() {
+  const rows = REC.filter(r => r.dept && r.y != null);
+  const ds = [...new Set(rows.map(r => r.dept))];
+  const groups = GROUPS.map(([g, list]) => [g, list.filter(d => ds.includes(d)).concat(ds.filter(d => grpOf(d) === g && !list.includes(d)).sort())]).filter(([, l]) => l.length);
+  const subs = S.dept === 'all' ? [] : [...new Set(rows.filter(r => r.dept === S.dept && r.sub).map(r => r.sub))].sort();
+  return { groups, subs };
+}
 function filters() {
   const ys = years();
+  const dp = deptOptions();
   $('filters').innerHTML = `<div class="fg"><span class="fl">기준일시</span>${[['all', '전체'], ...ys.map(y => [y, y + '년'])].map(([v, l]) => `<button class="chip" data-act="year" data-v="${v}" aria-pressed="${S.year === (v === 'all' ? 'all' : +v)}">${l}</button>`).join('')}</div>
   <div class="fg"><span class="fl">분기</span><button class="chip" data-act="qall" aria-pressed="${!S.ms.length}">전체</button>${[1, 2, 3, 4].map(q => `<button class="chip" data-act="q" data-v="${q}" aria-pressed="${[0, 1, 2].every(k => S.ms.includes(q * 3 - 2 + k))}">${q}분기</button>`).join('')}</div>
-  <div class="fg mo"><span class="fl">월</span>${Array.from({ length: 12 }, (_, i) => `<button class="chip" data-act="mo" data-v="${i + 1}" aria-pressed="${S.ms.includes(i + 1)}">${i + 1}월</button>`).join('')}</div>`;
+  <div class="fg mo"><span class="fl">월</span>${Array.from({ length: 12 }, (_, i) => `<button class="chip" data-act="mo" data-v="${i + 1}" aria-pressed="${S.ms.includes(i + 1)}">${i + 1}월</button>`).join('')}</div>
+  <div class="fg dp"><span class="fl">부서</span><select data-act="dept" aria-label="부서 선택"><option value="all">전체 부서</option>${dp.groups.map(([g, ds]) => `<optgroup label="${esc(g)}">${ds.map(d => `<option value="${esc(d)}" ${S.dept === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</optgroup>`).join('')}</select>
+  <span class="fl">세부부서</span><select data-act="sub" aria-label="세부부서 선택" ${dp.subs.length > 1 ? '' : 'disabled'}><option value="all">${S.dept === 'all' ? '부서를 먼저 선택' : dp.subs.length > 1 ? '전체 세부부서' : '세부부서 없음'}</option>${dp.subs.map(x => `<option value="${esc(x)}" ${S.sub === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>`;
 }
 function nav() {
   const lock = svg(ICON.lock, 12);
@@ -319,7 +330,10 @@ document.addEventListener('click', e => {
   render();
 });
 document.addEventListener('change', e => {
-  const t = e.target; if (t.dataset.act === 'dept') S.dept = t.value; else return;
+  const t = e.target;
+  if (t.dataset.act === 'dept') { S.dept = t.value; S.sub = 'all'; }
+  else if (t.dataset.act === 'sub') S.sub = t.value;
+  else return;
   render();
 });
 document.addEventListener('input', e => {
