@@ -137,7 +137,7 @@ nav.bottom{display:none}
 .refk .lbl{font-size:11px}.ref .note{font-size:11px}
 .side{display:contents}.navbtn .ic{display:none}
 @media(min-width:1024px){
-  .shell{display:grid;grid-template-columns:236px minmax(0,1fr);gap:22px;max-width:1560px;margin:0 auto;padding:0 24px;align-items:start}
+  .shell{display:grid;grid-template-columns:236px minmax(0,1fr);gap:22px;max-width:none;margin:0;padding:0 24px;align-items:start}
   .side{display:flex;flex-direction:column;gap:12px;position:sticky;top:16px;margin-top:20px}
   nav.top{flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;gap:2px;overflow:visible}
   .navbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;font-size:14px}
@@ -147,8 +147,14 @@ nav.bottom{display:none}
   .filters .fl{display:block;width:100%;font-size:12px;font-weight:500;color:var(--ink2);margin:0 0 2px}
   .filters .fg.mo{display:grid;grid-template-columns:repeat(4,1fr)}.filters .fg.mo .fl{grid-column:1/-1}
   .filters .fg.mo .chip{padding:4px 0;text-align:center}
-  main{max-width:none;margin:0;padding:20px 0 28px}
+  main{max-width:1700px;margin:0;padding:20px 0 28px}
 }
+/* 넓은 모니터: 화면 폭에 비례해 전체 크기를 키워 여백·작아 보이는 느낌 해소 */
+@media(min-width:1600px){body{zoom:1.1}}
+@media(min-width:1800px){body{zoom:1.2}}
+@media(min-width:2200px){body{zoom:1.38}}
+@media(min-width:2800px){body{zoom:1.7}}
+@media print{body{zoom:1!important}}
 @media(max-width:480px){.hero .big{font-size:32px}.hero .card{padding:14px}}
 </style>
 </head>
