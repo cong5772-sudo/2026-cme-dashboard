@@ -8,7 +8,7 @@ const TODAY = `${THIS_Y}-${String(NOW.getMonth() + 1).padStart(2, '0')}-${String
 const CACHE_KEY = 'cme.cache.v1';
 const PAGES = [['p1', '보수교육 현황', '📊'], ['p2', '부서별 분석', '🏥'], ['p3', '기타교육 🔒', '📝'], ['p4', '간호조무사', '👤'], ['p5', '관리점검 🔒', '✅']];
 
-const S = { page: 'p1', year: null, q: 'all', m: 'all', grp: 'all', dept: 'all', view: 'list', search: '',
+const S = { page: 'p1', year: null, ms: [], grp: 'all', dept: 'all', view: 'list', search: '',
   kind: { rp: true, at: false, ins: false, err: false }, pw: '', pwErr: '' };
 try { S.pw = sessionStorage.getItem('cme.pw') || ''; } catch (e) {}
 let RAW = null, REC = [], LOCKED = true, SAMPLE = false;
@@ -51,8 +51,16 @@ function normalize(raw) {
 const grpOf = d => (GROUPS.find(([, l]) => l.includes(d)) || [GROUPS.at(-1)[0]])[0];
 
 /* ---------- 필터/집계 ---------- */
+// 선택한 월(분기 칩은 해당 3개월을 한꺼번에 선택) → '1·2분기' 또는 '3·5·8월'
+function msText() {
+  const ms = [...S.ms].sort((a, b) => a - b); if (!ms.length) return '';
+  const qs = [1, 2, 3, 4].filter(q => [0, 1, 2].every(k => ms.includes(q * 3 - 2 + k)));
+  if (qs.length * 3 === ms.length) return qs.join('·') + '분기';
+  const parts = []; for (let i = 0; i < ms.length;) { let j = i; while (ms[j + 1] === ms[j] + 1) j++; parts.push(j - i >= 2 ? `${ms[i]}~${ms[j]}` : ms.slice(i, j + 1).join('·')); i = j + 1; }
+  return parts.join(', ') + '월';
+}
 const inP = r => r.y != null && (S.year === 'all' || r.y === S.year) &&
-  (S.q === 'all' || (r.m && Math.ceil(r.m / 3) === S.q)) && (S.m === 'all' || r.m === S.m);
+  (!S.ms.length || (r.m && S.ms.includes(r.m)));
 const bo = () => REC.filter(r => !r.j && r.g === '보수' && r.f && r.y != null);
 const cnt = rows => ({ t: rows.length, f: rows.filter(r => r.f === '대면').length, o: rows.filter(r => r.f === '온라인').length });
 const years = () => [...new Set(REC.filter(r => r.y != null).map(r => r.y))].sort((a, b) => b - a);
@@ -60,10 +68,10 @@ const years = () => [...new Set(REC.filter(r => r.y != null).map(r => r.y))].sor
 function prevOf() {
   if (S.year === 'all') return null;
   const y = S.year - 1;
-  const rows = bo().filter(r => r.y === y && (S.q === 'all' || (r.m && Math.ceil(r.m / 3) === S.q)) && (S.m === 'all' || r.m === S.m));
+  const rows = bo().filter(r => r.y === y && (!S.ms.length || (r.m && S.ms.includes(r.m))));
   if (rows.length) { const c = cnt(rows); return { y, total: c.t, face: c.f, online: c.o, src: '시트 데이터' }; }
   const p = (CFG.PREV_STATIC || {})[y];
-  if (p && S.q === 'all' && S.m === 'all') return { y, ...p, src: p.note || '고정 실적' };
+  if (p && !S.ms.length) return { y, ...p, src: p.note || '고정 실적' };
   return null;
 }
 
@@ -96,7 +104,7 @@ function gate(title) {
 /* ---------- 페이지 1 ---------- */
 function p1() {
   const rows = bo().filter(inP), c = cnt(rows), pv = prevOf();
-  const lbl = S.year === 'all' ? '전체 누적' : `${S.year}년${S.q !== 'all' ? ` ${S.q}분기` : ''}${S.m !== 'all' ? ` ${S.m}월` : ''}`;
+  const lbl = S.year === 'all' ? '전체 누적' : `${S.year}년${msText() ? ' ' + msText() : ''}`;
   const over = c.t && c.o / c.t > LIMIT;
   const dl = (now, was) => { const d = (now - was) * 100; return Math.abs(d) < 0.05 ? '전년과 동일' : `${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%p vs ${pv.y}`; };
   const pb = pv ? pv.total + (pv.exempt || 0) : 0;
@@ -132,7 +140,7 @@ function p1() {
 }
 
 /* ---------- 페이지 2 ---------- */
-const periodLabel = () => (S.year === 'all' ? '전체 기간(누적)' : `${S.year}년`) + (S.q !== 'all' ? ` ${S.q}분기` : '') + (S.m !== 'all' ? ` ${S.m}월` : (S.q === 'all' && S.year !== 'all' ? ' 1월~' + (S.year === THIS_Y ? (NOW.getMonth() + 1) : 12) + '월' : ''));
+const periodLabel = () => (S.year === 'all' ? '전체 기간(누적)' : `${S.year}년`) + (S.ms.length ? ' ' + msText() : (S.year !== 'all' ? ' 1월~' + (S.year === THIS_Y ? (NOW.getMonth() + 1) : 12) + '월' : ''));
 const printStamp = () => `${THIS_Y}.${String(NOW.getMonth() + 1).padStart(2, '0')}.${String(NOW.getDate()).padStart(2, '0')} ${String(NOW.getHours()).padStart(2, '0')}:${String(NOW.getMinutes()).padStart(2, '0')}`;
 function p2() {
   const rows = REC.filter(r => !r.j && r.y != null && r.dept && inP(r));
@@ -216,7 +224,7 @@ function p4() {
 /* ---------- 페이지 5 ---------- */
 function p5() {
   if (LOCKED) return gate('관리점검 (미제출자 확인)');
-  const base = REC.filter(r => !r.j && (r.y != null ? inP(r) : S.year === 'all' && S.q === 'all' && S.m === 'all'));
+  const base = REC.filter(r => !r.j && (r.y != null ? inP(r) : S.year === 'all' && !S.ms.length));
   const due = r => !r.iso || (r.endIso || r.iso) <= TODAY;
   const tags = r => { const t = [];
     if (S.kind.rp && !r.rp) t.push('결과보고서');
@@ -231,7 +239,7 @@ function p5() {
   const D = {}; rows.forEach(r => D[r.dept] = (D[r.dept] || 0) + 1);
   const top = Object.entries(D).sort((a, b) => b[1] - a[1]).slice(0, 8), mx = top[0]?.[1] || 1;
   const kinds = [['rp', '결과보고서 미제출'], ['at', '근태 미확인'], ['ins', '검수 확인필요'], ['err', '데이터 오류']];
-  const lbl = S.year === 'all' ? '전체' : `${S.year}년${S.q !== 'all' ? ` ${S.q}분기` : ''}${S.m !== 'all' ? ` ${S.m}월` : ''}`;
+  const lbl = S.year === 'all' ? '전체' : `${S.year}년${msText() ? ' ' + msText() : ''}`;
   return `<div class="grid k3">${kpi('점검 대상', `${rows.length}건`, `${lbl} · 오늘(${TODAY}) 이전 교육`, rows.length ? '' : '')}${kpi('해당 부서', `${Object.keys(D).length}곳`, top.slice(0, 3).map(([d, n]) => `${esc(d)} ${n}`).join(' · '))}${kpi('교육 예정(제외)', `${upcoming}건`, '교육일이 아직 안 지난 보고서 미제출')}</div>
   <section class="card" style="margin-bottom:12px"><div class="tools"><span class="fl">점검 항목</span>${kinds.map(([k, l]) => `<button class="chip" data-act="kind" data-v="${k}" aria-pressed="${S.kind[k]}">${l}</button>`).join('')}
     <input type="search" id="q" placeholder="이름·사번·교육명 검색" value="${esc(S.search)}"></div>
@@ -245,8 +253,8 @@ function p5() {
 function filters() {
   const ys = years();
   $('filters').innerHTML = `<div class="fg"><span class="fl">기준일시</span>${[['all', '전체'], ...ys.map(y => [y, y + '년'])].map(([v, l]) => `<button class="chip" data-act="year" data-v="${v}" aria-pressed="${S.year === (v === 'all' ? 'all' : +v)}">${l}</button>`).join('')}</div>
-  <div class="fg">${[['all', '전체'], [1, '1분기'], [2, '2분기'], [3, '3분기'], [4, '4분기']].map(([v, l]) => `<button class="chip" data-act="q" data-v="${v}" aria-pressed="${S.q === (v === 'all' ? 'all' : +v)}">${l}</button>`).join('')}</div>
-  <div class="fg"><select data-act="m" aria-label="월"><option value="all">월 전체</option>${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${S.m === i + 1 ? 'selected' : ''}>${i + 1}월</option>`).join('')}</select></div>`;
+  <div class="fg"><span class="fl">분기</span><button class="chip" data-act="qall" aria-pressed="${!S.ms.length}">전체</button>${[1, 2, 3, 4].map(q => `<button class="chip" data-act="q" data-v="${q}" aria-pressed="${[0, 1, 2].every(k => S.ms.includes(q * 3 - 2 + k))}">${q}분기</button>`).join('')}</div>
+  <div class="fg mo"><span class="fl">월</span>${Array.from({ length: 12 }, (_, i) => `<button class="chip" data-act="mo" data-v="${i + 1}" aria-pressed="${S.ms.includes(i + 1)}">${i + 1}월</button>`).join('')}</div>`;
 }
 function nav() {
   const b = PAGES.map(([id, l, ic]) => ({ id, l, ic }));
@@ -295,7 +303,9 @@ document.addEventListener('click', e => {
   const v = b.dataset.v, a = b.dataset.act;
   if (a === 'page') { S.page = v; S.search = ''; history.replaceState(null, '', '#' + v); window.scrollTo({ top: 0 }); }
   else if (a === 'year') S.year = v === 'all' ? 'all' : +v;
-  else if (a === 'q') S.q = v === 'all' ? 'all' : +v;
+  else if (a === 'qall') S.ms = [];
+  else if (a === 'q') { const mm = [0, 1, 2].map(k => +v * 3 - 2 + k), all = mm.every(x => S.ms.includes(x)); S.ms = all ? S.ms.filter(x => !mm.includes(x)) : [...new Set([...S.ms, ...mm])]; }
+  else if (a === 'mo') { const n = +v; S.ms = S.ms.includes(n) ? S.ms.filter(x => x !== n) : [...S.ms, n]; }
   else if (a === 'grp') S.grp = v;
   else if (a === 'view') S.view = v;
   else if (a === 'print') { window.print(); return; }
@@ -304,8 +314,7 @@ document.addEventListener('click', e => {
   render();
 });
 document.addEventListener('change', e => {
-  const t = e.target; if (t.dataset.act === 'm') S.m = t.value === 'all' ? 'all' : +t.value;
-  else if (t.dataset.act === 'dept') S.dept = t.value; else return;
+  const t = e.target; if (t.dataset.act === 'dept') S.dept = t.value; else return;
   render();
 });
 document.addEventListener('input', e => {
