@@ -105,6 +105,23 @@ nav.bottom{display:none}
   .bar{height:2.6mm;min-width:32mm;border-radius:0.6mm}
   .printfoot{display:block;margin-top:5mm;font-size:8.5pt;color:#555;line-height:1.6}
 }
+/* 강조(올해) vs 참고(전년) 위계 */
+.hero{gap:14px;margin-bottom:18px}
+.hero .card{padding:18px 20px 16px;border-top:4px solid var(--line2);box-shadow:0 3px 14px rgba(11,107,106,.12)}
+.hero .card .lbl{font-size:13px;font-weight:500;color:var(--ink2)}
+.hero .big{font-size:42px;font-weight:600;letter-spacing:-.5px;line-height:1.15;margin:4px 0 6px}
+.hero .sub{font-size:13px}.hero .sub b{font-size:15px;font-weight:600;color:var(--ink)}
+.t-main{border-top-color:var(--accent)!important}.t-face{border-top-color:var(--face)!important}.t-online{border-top-color:var(--online)!important}
+.t-ok{border-top-color:#1baf7a!important}.t-crit{border-top-color:var(--crit)!important}
+.c-ok{color:var(--good-ink)}.c-crit{color:var(--crit)}
+.ref{background:transparent!important;border:1px dashed var(--line2)!important;box-shadow:none;padding:12px 14px}
+.ref h2{font-size:13px;color:var(--ink2);font-weight:500}.ref .hint{margin-bottom:6px}
+.ref .bar{height:10px}.ref .bar i{opacity:.5}
+.ref .cmp{font-size:12px;margin:5px 0;color:var(--ink2)}
+.refk{gap:8px}.refk .card{padding:8px 12px;background:transparent;border-color:var(--line)}
+.refk .big{font-size:19px;font-weight:500;color:var(--ink2)}.refk .big.c-face,.refk .big.c-online{opacity:.75}
+.refk .lbl{font-size:11px}.ref .note{font-size:11px}
+@media(max-width:480px){.hero .big{font-size:32px}.hero .card{padding:14px}}
 </style>
 </head>
 <body>

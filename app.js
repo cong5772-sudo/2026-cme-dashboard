@@ -82,7 +82,7 @@ function chart(items, h = 150) {
   return `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img" aria-label="대면·온라인 이수 추이">${bars}</svg>
     <div class="legend"><span><i style="background:var(--face)"></i>대면</span><span><i style="background:var(--online)"></i>온라인</span></div>`;
 }
-const kpi = (l, v, s, cls = '') => `<div class="card"><div class="lbl">${l}</div><div class="big ${cls}">${v}</div><div class="sub">${s || ''}</div></div>`;
+const kpi = (l, v, s, cls = '', top = '') => `<div class="card ${top}"><div class="lbl">${l}</div><div class="big ${cls}">${v}</div><div class="sub">${s || ''}</div></div>`;
 const bar2 = (f, o, over) => { const t = f + o; return `<div class="bar" title="대면 ${f} · 온라인 ${o}"><i class="b-face" style="width:${t ? f / t * 100 : 0}%"></i><i class="${over ? 'b-crit' : 'b-online'}" style="width:${t ? o / t * 100 : 0}%"></i></div>`; };
 const dshort = r => r.iso ? `${+r.iso.slice(5, 7)}/${+r.iso.slice(8)}` + (r.endIso && r.endIso !== r.iso ? `~${+r.endIso.slice(5, 7) === +r.iso.slice(5, 7) ? '' : +r.endIso.slice(5, 7) + '/'}${+r.endIso.slice(8)}` : '') : '–';
 const deptLabel = r => r.sub && r.sub !== r.dept ? `${esc(r.dept)} · ${esc(r.sub)}` : esc(r.dept);
@@ -98,16 +98,18 @@ function p1() {
   const rows = bo().filter(inP), c = cnt(rows), pv = prevOf();
   const lbl = S.year === 'all' ? '전체 누적' : `${S.year}년${S.q !== 'all' ? ` ${S.q}분기` : ''}${S.m !== 'all' ? ` ${S.m}월` : ''}`;
   const over = c.t && c.o / c.t > LIMIT;
+  const dl = (now, was) => { const d = (now - was) * 100; return Math.abs(d) < 0.05 ? '전년과 동일' : `${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%p vs ${pv.y}`; };
+  const pb = pv ? pv.total + (pv.exempt || 0) : 0;
   let cmp = '';
   if (pv) {
     const ex = pv.exempt ?? null, base = pv.total + (ex || 0);
     const pf = pv.face / base * 100, po = pv.online / base * 100, pe = ex ? ex / base * 100 : 0;
-    cmp = `<section class="card"><h2>전년도 비교 · ${pv.y}년</h2><p class="hint">출처: ${esc(pv.src)}</p>
+    cmp = `<section class="card ref"><h2>전년도 비교 · ${pv.y}년</h2><p class="hint">출처: ${esc(pv.src)}</p>
     <div class="cmp"><b>${pv.y}</b><div class="bar"><i class="b-face" style="width:${pf}%"></i><i class="b-online" style="width:${po}%"></i><i class="b-ex" style="width:${pe}%"></i></div>
       <div class="v">총 ${num(pv.total)}명${ex ? ` (+면제 ${ex})` : ''}</div></div>
     <div class="cmp"><b>${S.year}</b><div class="bar"><i class="b-face" style="width:${c.t ? c.f / c.t * 100 : 0}%"></i><i class="b-online" style="width:${c.t ? c.o / c.t * 100 : 0}%"></i></div>
       <div class="v">총 ${num(c.t)}명${S.year === THIS_Y ? ' (진행중)' : ''}</div></div>
-    <div class="grid k3" style="margin:12px 0 0">
+    <div class="grid k3 refk" style="margin:10px 0 0">
       ${kpi(`${pv.y}년 대면 이수자`, `${num(pv.face)}명`, `${pct(pv.face, base)}${pv.faceIn ? ` · 본원 ${pv.faceIn}명 / 외부 ${pv.faceOut}명` : ''}`, 'c-face')}
       ${kpi(`${pv.y}년 온라인 이수자`, `${num(pv.online)}명`, pct(pv.online, base), 'c-online')}
       ${kpi(`${pv.y}년 면제자`, ex != null ? `${num(ex)}명` : '–', ex != null ? pct(ex, base) : '시트 데이터에 면제 구분 없음')}
@@ -119,11 +121,11 @@ function p1() {
     : Array.from({ length: 12 }, (_, i) => { const k = cnt(rows.filter(r => r.m === i + 1)); return { label: `${i + 1}월`, f: k.f, o: k.o }; });
   const noMonth = rows.filter(r => !r.m).length;
   const qrows = [1, 2, 3, 4].map(q => { const k = cnt(rows.filter(r => r.m && Math.ceil(r.m / 3) === q)); return `<tr><td>${q}분기</td><td class="num">${k.t}</td><td class="num">${k.f} (${pct(k.f, k.t)})</td><td class="num">${k.o} (${pct(k.o, k.t)})</td></tr>`; }).join('');
-  return `<div class="grid k4">
-    ${kpi('보수교육 총 이수', `${num(c.t)}명`, `${lbl} · 간호조무사 제외`)}
-    ${kpi('대면 이수자', `${num(c.f)}명`, pct(c.f, c.t), 'c-face')}
-    ${kpi('온라인 이수자', `${num(c.o)}명`, pct(c.o, c.t), 'c-online')}
-    ${kpi('온라인 관리기준', over ? '초과' : '이내', `기준 ${Math.round(LIMIT * 100)}% · 현재 ${pct(c.o, c.t)}`, over ? '' : '')}
+  return `<div class="grid k4 hero">
+    ${kpi('보수교육 총 이수', `${num(c.t)}명`, `${lbl} · 간호조무사 제외`, '', 't-main')}
+    ${kpi('대면 이수자', `${num(c.f)}명`, `<b>${pct(c.f, c.t)}</b>${pv && c.t ? ' · ' + dl(c.f / c.t, pv.face / pb) : ''}`, 'c-face', 't-face')}
+    ${kpi('온라인 이수자', `${num(c.o)}명`, `<b>${pct(c.o, c.t)}</b>${pv && c.t ? ' · ' + dl(c.o / c.t, pv.online / pb) : ''}`, 'c-online', 't-online')}
+    ${kpi('온라인 관리기준', over ? '초과' : '이내', `기준 ${Math.round(LIMIT * 100)}% · 현재 ${pct(c.o, c.t)}`, over ? 'c-crit' : 'c-ok', over ? 't-crit' : 't-ok')}
   </div>${cmp ? `<div style="margin-bottom:12px">${cmp}</div>` : ''}
   <section class="card" style="margin-bottom:12px"><h2>${S.year === 'all' ? '연도별' : '월별'} 이수 추이</h2><p class="hint">${lbl}${noMonth ? ` · 교육일 미상 ${noMonth}건은 월별에서 제외` : ''}</p>${chart(items)}</section>
   <section class="card"><h2>분기별 현황</h2><div class="tw"><table><thead><tr><th>분기</th><th class="num">이수(명)</th><th class="num">대면(명/비율)</th><th class="num">온라인(명/비율)</th></tr></thead><tbody>${qrows}</tbody><tfoot><tr><td>합계${noMonth ? ` <span class="tag">월 미상 ${noMonth}건 포함</span>` : ''}</td><td class="num">${c.t}</td><td class="num">${c.f} (${pct(c.f, c.t)})</td><td class="num">${c.o} (${pct(c.o, c.t)})</td></tr></tfoot></table></div></section>`;
