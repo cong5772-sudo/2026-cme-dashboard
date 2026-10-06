@@ -258,7 +258,7 @@ function filters() {
 }
 function nav() {
   const b = PAGES.map(([id, l, ic]) => ({ id, l, ic }));
-  $('navtop').innerHTML = b.map(x => `<button class="navbtn" data-act="page" data-v="${x.id}" ${S.page === x.id ? 'aria-current="page"' : ''}>${x.l}</button>`).join('');
+  $('navtop').innerHTML = b.map(x => `<button class="navbtn" data-act="page" data-v="${x.id}" ${S.page === x.id ? 'aria-current="page"' : ''}><span class="ic">${x.ic}</span>${x.l}</button>`).join('');
   $('navbot').innerHTML = b.map(x => `<button data-act="page" data-v="${x.id}" ${S.page === x.id ? 'aria-current="page"' : ''}><b>${x.ic}</b>${x.l.replace(' 🔒', '')}</button>`).join('');
 }
 function render() {

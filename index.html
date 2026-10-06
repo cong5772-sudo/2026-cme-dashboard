@@ -92,7 +92,8 @@ nav.bottom{display:none}
     --face:#2563eb;--online:#f59e0b;--crit-soft:#ffe9ee;--crit-ink:#be123c}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{background:#fff;color:#111;font-size:10pt}
-  header,nav.top,nav.bottom,.filters,.screen-only,.banner,main>.grid,.tools,.hint,.np{display:none!important}
+  .side,header,nav.top,nav.bottom,.filters,.screen-only,.banner,main>.grid,.tools,.hint,.np{display:none!important}
+  .shell{display:block;padding:0;max-width:none}
   main{max-width:none;padding:0;margin:0}
   .card{border:0;border-radius:0;padding:0;background:none}
   .tw{overflow:visible}
@@ -134,6 +135,20 @@ nav.bottom{display:none}
 .refk{gap:8px}.refk .card{padding:8px 12px;background:var(--surface);border-color:var(--line)}
 .refk .big{font-size:19px;font-weight:500;color:var(--ink)}.refk .big.c-face{color:var(--face)}.refk .big.c-online{color:var(--online-ink)}
 .refk .lbl{font-size:11px}.ref .note{font-size:11px}
+.side{display:contents}.navbtn .ic{display:none}
+@media(min-width:1024px){
+  .shell{display:grid;grid-template-columns:236px minmax(0,1fr);gap:22px;max-width:1560px;margin:0 auto;padding:0 24px;align-items:start}
+  .side{display:flex;flex-direction:column;gap:12px;position:sticky;top:16px;margin-top:20px}
+  nav.top{flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;gap:2px;overflow:visible}
+  .navbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;font-size:14px}
+  .navbtn .ic{display:inline;font-size:16px;width:20px;text-align:center}
+  .filters{position:static;display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 14px 4px}
+  .filters .fg{margin-bottom:14px;gap:6px}
+  .filters .fl{display:block;width:100%;font-size:12px;font-weight:500;color:var(--ink2);margin:0 0 2px}
+  .filters .fg.mo{display:grid;grid-template-columns:repeat(4,1fr)}.filters .fg.mo .fl{grid-column:1/-1}
+  .filters .fg.mo .chip{padding:4px 0;text-align:center}
+  main{max-width:none;margin:0;padding:20px 0 28px}
+}
 @media(max-width:480px){.hero .big{font-size:32px}.hero .card{padding:14px}}
 </style>
 </head>
@@ -145,9 +160,10 @@ nav.bottom{display:none}
     <div class="meta"><span class="dot" id="dot" data-s="stale"></span><span id="upd">–</span><button class="icon" id="refresh" title="지금 새로 불러오기" aria-label="새로고침">⟳</button></div>
   </div>
 </header>
-<nav class="top" id="navtop"></nav>
-<div class="filters" id="filters"></div>
+<div class="shell">
+<aside class="side"><nav class="top" id="navtop"></nav><div class="filters" id="filters"></div></aside>
 <main id="view"><div class="msg">데이터를 불러오는 중입니다…</div></main>
+</div>
 <nav class="bottom" id="navbot"></nav>
 <script src="config.js"></script>
 <script src="app.js"></script>
