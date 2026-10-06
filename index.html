@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>보수교육 이수 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef3f3;--surface:#fbfdfd;--sunk:#e4ecec;--ink:#0f1c1e;--ink2:#46585b;--muted:#6f8285;
+  --line:#d6e1e2;--line2:#c2d0d1;--accent:#0b6b6a;--accent-ink:#fff;--accent-soft:#d3e9e7;
+  --face:#2a78d6;--online:#eb6834;--exempt:#8a9a9c;--crit:#d03b3b;--crit-soft:#fbe7ee;--crit-ink:#9b2c4a;
+  --good-ink:#006300;--warn-soft:#fdf1d6;--warn-ink:#7a5200;
+  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--r:10px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0a1112;--surface:#121b1c;--sunk:#0e1617;--ink:#e9f1f1;--ink2:#b3c3c4;--muted:#83979a;
+  --line:#223032;--line2:#2e3f41;--accent:#4fb3ad;--accent-ink:#06201f;--accent-soft:#163837;
+  --face:#3987e5;--online:#d95926;--crit-soft:#3a1d27;--crit-ink:#ef9bb4;--good-ink:#2fc22f;--warn-soft:#3a2f12;--warn-ink:#f1c660}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-ui);-webkit-text-size-adjust:100%}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:16px;font-weight:600;margin:0}
+header .meta{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.dot[data-s=live]{background:#1baf7a}.dot[data-s=stale]{background:#eda100}.dot[data-s=error]{background:var(--crit)}
+button{font:inherit;color:inherit;cursor:pointer}
+.icon{border:1px solid var(--line2);background:var(--surface);border-radius:8px;padding:3px 9px}
+nav.top{display:flex;gap:4px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
+.navbtn{border:0;background:none;padding:8px 12px;border-radius:8px;color:var(--ink2);white-space:nowrap;font-weight:500}
+.navbtn[aria-current=page]{background:var(--accent);color:var(--accent-ink)}
+.filters{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)}
+.fg{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.fl{font-size:12px;color:var(--muted);margin-right:2px}
+.chip{border:1px solid var(--line2);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:13px}
+.chip[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+select,input[type=search],input[type=password]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:5px 9px}
+main{max-width:1180px;margin:0 auto;padding:16px}
+.grid{display:grid;gap:12px;margin-bottom:12px}
+.k4{grid-template-columns:repeat(4,1fr)}.k3{grid-template-columns:repeat(3,1fr)}.k2{grid-template-columns:1fr 1fr}
+@media(max-width:820px){.k4{grid-template-columns:1fr 1fr}.k3{grid-template-columns:1fr 1fr}.k2{grid-template-columns:1fr}}
+@media(max-width:480px){.k4,.k3{grid-template-columns:1fr 1fr}main{padding:12px}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+.lbl{font-size:12px;color:var(--muted)}.big{font-size:28px;font-weight:600;line-height:1.25;margin:2px 0}
+.sub{font-size:12px;color:var(--ink2)}
+h2{font-size:15px;margin:0 0 4px;font-weight:600}.hint{font-size:12px;color:var(--muted);margin:0 0 10px}
+.c-face{color:var(--face)}.c-online{color:var(--online)}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.tag.crit{background:var(--crit-soft);color:var(--crit-ink)}.tag.good{background:#e1f3e1;color:var(--good-ink)}.tag.warn{background:var(--warn-soft);color:var(--warn-ink)}
+.bar{height:14px;border-radius:4px;background:var(--sunk);display:flex;overflow:hidden;min-width:70px}
+.bar i{display:block;height:100%}.b-face{background:var(--face)}.b-online{background:var(--online)}.b-ex{background:var(--exempt)}.b-crit{background:#d4537e}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:500;background:var(--surface)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.gh td{background:var(--sunk);font-weight:600}tr.sub td{background:var(--sunk);font-weight:500;color:var(--ink2)}
+tr.over td:first-child{box-shadow:inset 3px 0 0 #d4537e}tr.over{background:var(--crit-soft)}
+tfoot td{font-weight:600;border-top:2px solid var(--line2);border-bottom:0}
+td.wrap{white-space:normal;min-width:180px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink2);margin-top:6px;flex-wrap:wrap}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.cmp{display:grid;grid-template-columns:64px 1fr 150px;gap:10px;align-items:center;margin:8px 0;font-size:13px}
+.cmp .v{text-align:right;color:var(--ink2);font-size:12px}
+@media(max-width:480px){.cmp{grid-template-columns:48px 1fr}.cmp .v{grid-column:1/-1;text-align:left}}
+.lock{max-width:380px;margin:32px auto;text-align:center}
+.lock input{width:100%;margin:10px 0}.lock .go{width:100%;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px;font-weight:600}
+.err{color:var(--crit-ink);font-size:12px;min-height:18px}
+.msg{padding:48px 16px;text-align:center;color:var(--ink2)}
+.banner{background:var(--warn-soft);color:var(--warn-ink);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+nav.bottom{display:none}
+@media(max-width:640px){
+  nav.top{display:none}
+  .filters{position:static;gap:8px;padding:8px 12px}.filters .fg{flex-wrap:nowrap;overflow-x:auto;max-width:100%}
+  nav.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom));z-index:9}
+  nav.bottom button{flex:1;border:0;background:none;padding:7px 2px;font-size:11px;color:var(--muted)}
+  nav.bottom button b{display:block;font-size:16px;font-weight:400;line-height:1.2}
+  nav.bottom button[aria-current=page]{color:var(--accent);font-weight:600}
+  main{padding-bottom:84px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>간호국 보수교육 이수 대시보드</h1>
+  <div class="meta"><span class="dot" id="dot" data-s="stale"></span><span id="upd">–</span><button class="icon" id="refresh" title="지금 새로 불러오기" aria-label="새로고침">⟳</button></div>
+</header>
+<nav class="top" id="navtop"></nav>
+<div class="filters" id="filters"></div>
+<main id="view"><div class="msg">데이터를 불러오는 중입니다…</div></main>
+<nav class="bottom" id="navbot"></nav>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
