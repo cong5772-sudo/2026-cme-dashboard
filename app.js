@@ -135,8 +135,8 @@ function p1() {
     ${kpi('온라인 이수자', `${num(c.o)}명`, `<b>${pct(c.o, c.t)}</b>${pv && c.t ? ' · ' + dl(c.o / c.t, pv.online / pb) : ''}`, 'c-online', 't-online')}
     ${kpi('온라인 관리기준', over ? '초과' : '이내', `기준 ${Math.round(LIMIT * 100)}% · 현재 ${pct(c.o, c.t)}`, over ? 'c-crit' : 'c-ok', over ? 't-crit' : 't-ok')}
   </div>${cmp ? `<div style="margin-bottom:12px">${cmp}</div>` : ''}
-  <div class="split"><section class="card"><h2>${S.year === 'all' ? '연도별' : '월별'} 이수 추이</h2><p class="hint">${lbl}${noMonth ? ` · 교육일 미상 ${noMonth}건은 월별에서 제외` : ''}</p>${chart(items)}</section>
-  <section class="card"><h2>분기별 현황</h2><div class="tw"><table><thead><tr><th>분기</th><th class="num">이수(명)</th><th class="num">대면(명/비율)</th><th class="num">온라인(명/비율)</th></tr></thead><tbody>${qrows}</tbody><tfoot><tr><td>합계${noMonth ? ` <span class="tag">월 미상 ${noMonth}건 포함</span>` : ''}</td><td class="num">${c.t}</td><td class="num">${c.f} (${pct(c.f, c.t)})</td><td class="num">${c.o} (${pct(c.o, c.t)})</td></tr></tfoot></table></div></section></div>`;
+  <section class="card" style="margin-bottom:12px"><h2>${S.year === 'all' ? '연도별' : '월별'} 이수 추이</h2><p class="hint">${lbl}${noMonth ? ` · 교육일 미상 ${noMonth}건은 월별에서 제외` : ''}</p>${chart(items)}</section>
+  <section class="card"><h2>분기별 현황</h2><div class="tw"><table><thead><tr><th>분기</th><th class="num">이수(명)</th><th class="num">대면(명/비율)</th><th class="num">온라인(명/비율)</th></tr></thead><tbody>${qrows}</tbody><tfoot><tr><td>합계${noMonth ? ` <span class="tag">월 미상 ${noMonth}건 포함</span>` : ''}</td><td class="num">${c.t}</td><td class="num">${c.f} (${pct(c.f, c.t)})</td><td class="num">${c.o} (${pct(c.o, c.t)})</td></tr></tfoot></table></div></section>`;
 }
 
 /* ---------- 페이지 2 ---------- */

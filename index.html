@@ -14,7 +14,6 @@
   --line:#e3e8f0;--line2:#cbd5e1;--accent:#1e3a6e;--accent-ink:#fff;--accent-soft:#e6edfa;
   --face:#2563eb;--online:#f59e0b;--online-ink:#b45309;--exempt:#94a3b8;--crit:#e11d48;--crit-soft:#ffe9ee;--crit-ink:#be123c;
   --good:#16a34a;--good-ink:#15803d;--warn-soft:#fef3c7;--warn-ink:#92400e;
-  --wrap:1640px;--gut:28px;--edge:max(16px,calc((100vw - var(--wrap)) / 2 + var(--gut)));
   --f-ui:"S-Core Dream","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--r:12px;
 }
 @media (prefers-color-scheme:dark){:root{
@@ -24,7 +23,7 @@
   --good-ink:#4ade80;--warn-soft:#3a2f12;--warn-ink:#fcd34d}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-ui);-webkit-text-size-adjust:100%}
-header{background:var(--surface);border-bottom:1px solid var(--line);padding:12px var(--edge);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 header h1{font-size:16px;font-weight:600;margin:0}
 header .hright{margin-left:auto;display:flex;align-items:center;gap:18px}
 .org{text-align:right;line-height:1.35}.org b{display:block;font-size:13px;font-weight:600;color:var(--accent)}.org span{font-size:11.5px;color:var(--muted)}
@@ -34,15 +33,15 @@ header .meta{font-size:12px;color:var(--muted);display:flex;align-items:center;g
 .dot[data-s=live]{background:var(--good)}.dot[data-s=stale]{background:var(--online)}.dot[data-s=error]{background:var(--crit)}
 button{font:inherit;color:inherit;cursor:pointer}
 .icon{border:1px solid var(--line2);background:var(--surface);border-radius:8px;padding:3px 9px}
-nav.top{display:flex;gap:4px;padding:8px var(--edge);background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
+nav.top{display:flex;gap:4px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
 .navbtn{border:0;background:none;padding:8px 12px;border-radius:8px;color:var(--ink2);white-space:nowrap;font-weight:500}
 .navbtn[aria-current=page]{background:var(--accent);color:var(--accent-ink)}
-.filters{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px var(--edge);display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)}
+.filters{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)}
 .fg{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.fg.mo .chip{padding:3px 9px;font-size:12px}.fl{font-size:12px;color:var(--muted);margin-right:2px}
 .chip{border:1px solid var(--line2);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:13px}
 .chip[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 select,input[type=search],input[type=password]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:5px 9px}
-main{max-width:var(--wrap);margin:0 auto;padding:20px var(--gut)}
+main{max-width:1180px;margin:0 auto;padding:16px}
 .grid{display:grid;gap:12px;margin-bottom:12px}
 .k4{grid-template-columns:repeat(4,1fr)}.k3{grid-template-columns:repeat(3,1fr)}.k2{grid-template-columns:1fr 1fr}
 @media(max-width:820px){.k4{grid-template-columns:1fr 1fr}.k3{grid-template-columns:1fr 1fr}.k2{grid-template-columns:1fr}}
@@ -136,11 +135,6 @@ nav.bottom{display:none}
 .refk .big{font-size:19px;font-weight:500;color:var(--ink)}.refk .big.c-face{color:var(--face)}.refk .big.c-online{color:var(--online-ink)}
 .refk .lbl{font-size:11px}.ref .note{font-size:11px}
 @media(max-width:480px){.hero .big{font-size:32px}.hero .card{padding:14px}}
-.split{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:12px;margin-bottom:12px;align-items:start}
-.split>.card{margin:0!important}
-@media(max-width:1020px){.split{grid-template-columns:1fr}}
-@media(min-width:1500px){.hero .big{font-size:46px}}
-@media(max-width:640px){:root{--gut:12px}}
 </style>
 </head>
 <body>
