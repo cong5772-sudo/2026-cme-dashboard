@@ -130,6 +130,8 @@ function p1() {
 }
 
 /* ---------- 페이지 2 ---------- */
+const periodLabel = () => (S.year === 'all' ? '전체 기간(누적)' : `${S.year}년`) + (S.q !== 'all' ? ` ${S.q}분기` : '') + (S.m !== 'all' ? ` ${S.m}월` : (S.q === 'all' && S.year !== 'all' ? ' 1월~' + (S.year === THIS_Y ? (NOW.getMonth() + 1) : 12) + '월' : ''));
+const printStamp = () => `${THIS_Y}.${String(NOW.getMonth() + 1).padStart(2, '0')}.${String(NOW.getDate()).padStart(2, '0')} ${String(NOW.getHours()).padStart(2, '0')}:${String(NOW.getMinutes()).padStart(2, '0')}`;
 function p2() {
   const rows = REC.filter(r => !r.j && r.y != null && r.dept && inP(r));
   const D = {};
@@ -152,19 +154,23 @@ function p2() {
     body += `<tr class="gh"><td colspan="7">${esc(g)} <span class="tag">${ds.length}개 부서</span></td></tr>`;
     ds.forEach(d => {
       const x = D[d], t = x.f + x.o, over = t > 0 && x.o / t > LIMIT; if (over) nOver++;
-      body += `<tr class="${over ? 'over' : ''}"><td>${esc(d)}</td>${cell(x.f, x.o)}<td>${bar2(x.f, x.o, over)}</td><td class="num">${x.etc || '–'} / ${x.req || '–'}</td></tr>`;
+      body += `<tr class="${over ? 'over' : ''}"><td>${esc(d)}</td>${cell(x.f, x.o)}<td>${bar2(x.f, x.o, over)}</td><td class="num np">${x.etc || '–'} / ${x.req || '–'}</td></tr>`;
     });
-    body += `<tr class="sub"><td>${esc(g)} 소계</td>${cell(sum.f, sum.o)}<td></td><td class="num">${sum.etc} / ${sum.req}</td></tr>`;
+    body += `<tr class="sub"><td>${esc(g)} 소계</td>${cell(sum.f, sum.o)}<td></td><td class="num np">${sum.etc} / ${sum.req}</td></tr>`;
     Object.keys(tot).forEach(k => tot[k] += sum[k]);
   });
   const cards = gs.map(({ g, sum }) => kpi(esc(g), `${num(sum.f + sum.o)}명`, `대면 ${sum.f} · 온라인 ${sum.o} (${pct(sum.o, sum.f + sum.o)})`)).join('');
   return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${cards}</div>
   <section class="card"><div class="tools"><span class="fl">구분</span>${[['all', '전체'], ...GROUPS.map(([g]) => [g, g])].map(([v, l]) => `<button class="chip" data-act="grp" data-v="${esc(v)}" aria-pressed="${S.grp === v}">${esc(l)}</button>`).join('')}
     ${nOver ? `<span class="tag crit">온라인 ${Math.round(LIMIT * 100)}% 초과 ${nOver}곳</span>` : '<span class="tag good">온라인 기준 이내</span>'}</div>
-  <h2>부서별 보수교육 이수 현황</h2><p class="hint">부서 구분은 신규간호사 대시보드 기준 · 간호조무사 제외 · 교육 당시 부서 기준</p>
-  <div class="tw"><table><thead><tr><th>간호단위</th><th class="num">이수(명)</th><th class="num">대면 명(%)</th><th class="num">온라인 명(%)</th><th>대면/온라인</th><th class="num">기타 / 필수(명)</th></tr></thead>
+  <div class="printhead"><h1>부서별 보수교육 이수 현황</h1><div class="pmeta"><span><b>기준일시</b> ${periodLabel()}</span><span><b>구분</b> ${S.grp === 'all' ? '전체' : esc(S.grp)}</span><span><b>출력일시</b> ${printStamp()}</span></div>
+  <div class="psum">총 이수 <b>${num(tot.f + tot.o)}명</b> · 대면 <b>${num(tot.f)}명</b> (${pct(tot.f, tot.f + tot.o)}) · 온라인 <b>${num(tot.o)}명</b> (${pct(tot.o, tot.f + tot.o)})</div></div>
+  <div class="screen-only tools" style="justify-content:flex-end"><button class="chip" data-act="print" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">🖨 PDF 출력 (A4 1장)</button></div>
+  <h2 class="screen-only">부서별 보수교육 이수 현황</h2><p class="hint">부서 구분은 신규간호사 대시보드 기준 · 간호조무사 제외 · 교육 당시 부서 기준</p>
+  <div class="tw"><table><thead><tr><th>간호단위</th><th class="num">이수(명)</th><th class="num">대면 명(%)</th><th class="num">온라인 명(%)</th><th>대면/온라인</th><th class="num np">기타 / 필수(명)</th></tr></thead>
   <tbody>${body || '<tr><td colspan="7" class="msg">해당 기간 데이터가 없습니다.</td></tr>'}</tbody>
-  <tfoot><tr><td>전체 합계</td>${cell(tot.f, tot.o)}<td></td><td class="num">${tot.etc} / ${tot.req}</td></tr></tfoot></table></div></section>`;
+  <tfoot><tr><td>전체 합계</td>${cell(tot.f, tot.o)}<td></td><td class="num np">${tot.etc} / ${tot.req}</td></tr></tfoot></table></div>
+  <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.</div></section>`;
 }
 
 /* ---------- 페이지 3 ---------- */
@@ -290,6 +296,7 @@ document.addEventListener('click', e => {
   else if (a === 'q') S.q = v === 'all' ? 'all' : +v;
   else if (a === 'grp') S.grp = v;
   else if (a === 'view') S.view = v;
+  else if (a === 'print') { window.print(); return; }
   else if (a === 'kind') S.kind[v] = !S.kind[v];
   else if (a === 'unlock') { const pw = $('pw').value; if (!pw) return; S.pw = pw; if (SAMPLE) { LOCKED = false; render(); return; } load(pw); return; }
   render();
