@@ -6,7 +6,16 @@ const NOW = new Date();
 const THIS_Y = NOW.getFullYear();
 const TODAY = `${THIS_Y}-${String(NOW.getMonth() + 1).padStart(2, '0')}-${String(NOW.getDate()).padStart(2, '0')}`;
 const CACHE_KEY = 'cme.cache.v1';
-const PAGES = [['p1', '보수교육 현황', '📊'], ['p2', '부서별 분석', '🏥'], ['p3', '기타교육 🔒', '📝'], ['p4', '간호조무사', '👤'], ['p5', '관리점검 🔒', '✅']];
+const svg = (p, n = 18) => `<svg viewBox="0 0 24 24" width="${n}" height="${n}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICON = {
+  p1: '<path d="M4 20V11M10 20V5M16 20v-8M21 20H3"/>',
+  p2: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/>',
+  p3: '<path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5V8h4M9 12.5h6M9 16h6"/>',
+  p4: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17.5" cy="9" r="2.4"/><path d="M17 14.6c2.6.2 4.5 2 4.5 4.9"/>',
+  p5: '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 4.5V3.5h6v1M8.8 13l2.4 2.4 4-4.6"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
+};
+const PAGES = [['p1', '보수교육 현황', false], ['p2', '부서별 분석', false], ['p3', '기타교육', true], ['p4', '간호조무사', false], ['p5', '관리점검', true]];
 
 const S = { page: 'p1', year: null, ms: [], grp: 'all', dept: 'all', view: 'list', search: '',
   kind: { rp: true, at: false, ins: false, err: false }, pw: '', pwErr: '' };
@@ -96,7 +105,7 @@ const dshort = r => r.iso ? `${+r.iso.slice(5, 7)}/${+r.iso.slice(8)}` + (r.endI
 const deptLabel = r => r.sub && r.sub !== r.dept ? `${esc(r.dept)} · ${esc(r.sub)}` : esc(r.dept);
 
 function gate(title) {
-  return `<div class="card lock"><h2>🔒 ${title}</h2><p class="hint">이름·사원번호가 표시되는 페이지입니다. 비밀번호를 입력하세요.</p>
+  return `<div class="card lock"><h2 style="justify-content:center">${svg(ICON.lock, 17)} ${title}</h2><p class="hint">이름·사원번호가 표시되는 페이지입니다. 비밀번호를 입력하세요.</p>
   <input type="password" id="pw" placeholder="비밀번호" autocomplete="current-password" value="">
   <div class="err" id="pwerr">${esc(S.pwErr)}</div><button class="go" data-act="unlock">확인</button></div>`;
 }
@@ -257,9 +266,9 @@ function filters() {
   <div class="fg mo"><span class="fl">월</span>${Array.from({ length: 12 }, (_, i) => `<button class="chip" data-act="mo" data-v="${i + 1}" aria-pressed="${S.ms.includes(i + 1)}">${i + 1}월</button>`).join('')}</div>`;
 }
 function nav() {
-  const b = PAGES.map(([id, l, ic]) => ({ id, l, ic }));
-  $('navtop').innerHTML = b.map(x => `<button class="navbtn" data-act="page" data-v="${x.id}" ${S.page === x.id ? 'aria-current="page"' : ''}><span class="ic">${x.ic}</span>${x.l}</button>`).join('');
-  $('navbot').innerHTML = b.map(x => `<button data-act="page" data-v="${x.id}" ${S.page === x.id ? 'aria-current="page"' : ''}><b>${x.ic}</b>${x.l.replace(' 🔒', '')}</button>`).join('');
+  const lock = svg(ICON.lock, 12);
+  $('navtop').innerHTML = PAGES.map(([id, l, lk]) => `<button class="navbtn" data-act="page" data-v="${id}" ${S.page === id ? 'aria-current="page"' : ''}><span class="ic">${svg(ICON[id], 18)}</span><span class="tx">${l}</span>${lk ? `<span class="lk" title="비밀번호 필요">${lock}</span>` : ''}</button>`).join('');
+  $('navbot').innerHTML = PAGES.map(([id, l, lk]) => `<button data-act="page" data-v="${id}" ${S.page === id ? 'aria-current="page"' : ''}><b>${svg(ICON[id], 21)}</b>${l}${lk ? ' ' + lock : ''}</button>`).join('');
 }
 function render() {
   nav();

@@ -92,6 +92,7 @@ nav.bottom{display:none}
     --face:#2563eb;--online:#f59e0b;--crit-soft:#ffe9ee;--crit-ink:#be123c}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{background:#fff;color:#111;font-size:10pt}
+  .mark{display:none}
   .side,header,nav.top,nav.bottom,.filters,.screen-only,.banner,main>.grid,.tools,.hint,.np{display:none!important}
   .shell{display:block;padding:0;max-width:none}
   main{max-width:none;padding:0;margin:0}
@@ -155,11 +156,56 @@ nav.bottom{display:none}
 @media(min-width:2200px){body{zoom:1.38}}
 @media(min-width:2800px){body{zoom:1.7}}
 @media print{body{zoom:1!important}}
+
+/* ===== 디자인 보완: 배경·카드·사이드바·표 ===== */
+body{background:
+  radial-gradient(1100px 520px at 88% -8%,rgba(37,99,235,.09),transparent 62%),
+  radial-gradient(900px 560px at -8% 4%,rgba(30,58,110,.10),transparent 58%),
+  linear-gradient(180deg,#f4f7fc 0%,#eaf0f8 100%);background-attachment:fixed;min-height:100vh}
+@media (prefers-color-scheme:dark){body{background:
+  radial-gradient(1100px 520px at 88% -8%,rgba(91,155,255,.10),transparent 62%),
+  radial-gradient(900px 560px at -8% 4%,rgba(122,167,255,.07),transparent 58%),#0b1220;background-attachment:fixed}}
+header{box-shadow:0 1px 0 var(--line),0 6px 20px -12px rgba(15,23,42,.18)}
+.mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#1e3a6e,#2f63c8);display:inline-flex;align-items:center;justify-content:center;flex:none;box-shadow:0 3px 8px -2px rgba(30,58,110,.5)}
+header h1{letter-spacing:-.2px}
+.card{border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -10px rgba(15,23,42,.12)}
+h2{display:flex;align-items:center;gap:8px}
+h2::before{content:"";width:4px;height:15px;border-radius:3px;background:linear-gradient(180deg,var(--face),var(--accent));flex:none}
+.lock h2::before,.printhead h1::before{display:none}
+.ref h2::before{background:var(--line2)}
+.hero .card.t-main{background:linear-gradient(135deg,#1b3563 0%,#2a52a0 100%);border-color:transparent;position:relative;overflow:hidden}
+.hero .card.t-main::after{content:"";position:absolute;right:-34px;top:-34px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.09)}
+.hero .card.t-main::before{content:"";position:absolute;right:26px;bottom:-46px;width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,.06)}
+table thead th{background:var(--sunk);color:var(--ink2);font-weight:500;border-bottom:1px solid var(--line2)}
+table thead th:first-child{border-radius:8px 0 0 8px}table thead th:last-child{border-radius:0 8px 8px 0}
+tbody tr:not(.gh):not(.sub):hover td{background:rgba(37,99,235,.045)}
+.chip{transition:background .15s,border-color .15s,color .15s}
+.chip:hover{border-color:var(--accent)}
+.navbtn .ic{display:none}.navbtn .lk{display:none}
+nav.top{gap:6px}
+nav.top .navbtn{display:inline-flex;align-items:center;gap:7px}
+nav.top .navbtn .ic,nav.top .navbtn .lk{display:inline-flex}
+nav.top .navbtn .lk{opacity:.6}
+nav.bottom button b{display:flex;justify-content:center;font-weight:400;line-height:1}
+nav.bottom button svg{display:block}
+@media(min-width:1024px){
+  nav.top{background:linear-gradient(180deg,#1b3563 0%,#16294d 100%);border:0;border-radius:16px;padding:10px;box-shadow:0 10px 26px -14px rgba(22,41,77,.65)}
+  .navbtn{color:rgba(255,255,255,.74);border-radius:10px;padding:11px 12px;gap:11px;position:relative;font-weight:500;transition:background .15s,color .15s}
+  .navbtn:hover{background:rgba(255,255,255,.08);color:#fff}
+  .navbtn[aria-current=page]{background:rgba(255,255,255,.15);color:#fff;font-weight:600}
+  .navbtn[aria-current=page]::before{content:"";position:absolute;left:-10px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:#7fb0ff}
+  .navbtn .ic{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
+  .navbtn .tx{flex:1;text-align:left}
+  .navbtn .lk{margin-left:auto;display:inline-flex}
+  .filters{border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -10px rgba(15,23,42,.12)}
+}
+@media (prefers-color-scheme:dark){@media(min-width:1024px){nav.top{background:linear-gradient(180deg,#16294d,#0f1d38)}}}
 @media(max-width:480px){.hero .big{font-size:32px}.hero .card{padding:14px}}
 </style>
 </head>
 <body>
 <header>
+  <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
   <h1>간호국 보수교육 이수 대시보드</h1>
   <div class="hright">
     <div class="org"><b>인제대학교 해운대백병원 간호국</b><span>관리자(교육파트장)</span></div>
