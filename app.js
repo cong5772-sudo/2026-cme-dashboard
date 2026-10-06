@@ -152,13 +152,13 @@ function p2() {
   const show = gs.filter(x => S.grp === 'all' || x.g === S.grp);
   const cell = (f, o) => `<td class="num">${f + o}</td><td class="num">${f} (${pct(f, f + o)})</td><td class="num">${o} (${pct(o, f + o)})</td>`;
   let body = '', tot = { f: 0, o: 0, etc: 0, req: 0 }, nOver = 0;
-  show.forEach(({ g, ds, sum }) => {
-    body += `<tr class="gh"><td colspan="7">${esc(g)} <span class="tag">${ds.length}개 부서</span></td></tr>`;
+  show.forEach(({ g, ds, sum }, gi) => {
+    body += `<tbody class="grp${gi === 3 ? ' pbreak' : ''}"><tr class="gh"><td colspan="7">${esc(g)} <span class="tag">${ds.length}개 부서</span></td></tr>`;
     ds.forEach(d => {
       const x = D[d], t = x.f + x.o, over = t > 0 && x.o / t > LIMIT; if (over) nOver++;
       body += `<tr class="${over ? 'over' : ''}"><td>${esc(d)}</td>${cell(x.f, x.o)}<td>${bar2(x.f, x.o, over)}</td><td class="num np">${x.etc || '–'} / ${x.req || '–'}</td></tr>`;
     });
-    body += `<tr class="sub"><td>${esc(g)} 소계</td>${cell(sum.f, sum.o)}<td></td><td class="num np">${sum.etc} / ${sum.req}</td></tr>`;
+    body += `<tr class="sub"><td>${esc(g)} 소계</td>${cell(sum.f, sum.o)}<td></td><td class="num np">${sum.etc} / ${sum.req}</td></tr></tbody>`;
     Object.keys(tot).forEach(k => tot[k] += sum[k]);
   });
   const cards = gs.map(({ g, sum }) => kpi(esc(g), `${num(sum.f + sum.o)}명`, `대면 ${sum.f} · 온라인 ${sum.o} (${pct(sum.o, sum.f + sum.o)})`)).join('');
@@ -170,7 +170,7 @@ function p2() {
   <div class="screen-only tools" style="justify-content:flex-end"><button class="chip" data-act="print" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">🖨 PDF 출력 (A4 1장)</button></div>
   <h2 class="screen-only">부서별 보수교육 이수 현황</h2><p class="hint">부서 구분은 신규간호사 대시보드 기준 · 간호조무사 제외 · 교육 당시 부서 기준</p>
   <div class="tw"><table><thead><tr><th>간호단위</th><th class="num">이수(명)</th><th class="num">대면 명(%)</th><th class="num">온라인 명(%)</th><th>대면/온라인</th><th class="num np">기타 / 필수(명)</th></tr></thead>
-  <tbody>${body || '<tr><td colspan="7" class="msg">해당 기간 데이터가 없습니다.</td></tr>'}</tbody>
+  ${body || '<tbody><tr><td colspan="7" class="msg">해당 기간 데이터가 없습니다.</td></tr></tbody>'}
   <tfoot><tr><td>전체 합계</td>${cell(tot.f, tot.o)}<td></td><td class="num np">${tot.etc} / ${tot.req}</td></tr></tfoot></table></div>
   <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · 관리자(교육파트장)</div></div></section>`;
 }
