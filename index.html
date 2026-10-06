@@ -4,15 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>보수교육 이수 대시보드</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <style>
+@font-face{font-family:"S-Core Dream";font-weight:400;font-display:swap;src:url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-4Regular.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:500;font-display:swap;src:url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-5Medium.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:600 800;font-display:swap;src:url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-6Bold.woff") format("woff")}
 :root{
   --bg:#f3f5f9;--surface:#ffffff;--sunk:#edf1f7;--ink:#0f172a;--ink2:#475569;--muted:#64748b;
   --line:#e3e8f0;--line2:#cbd5e1;--accent:#1e3a6e;--accent-ink:#fff;--accent-soft:#e6edfa;
   --face:#2563eb;--online:#f59e0b;--online-ink:#b45309;--exempt:#94a3b8;--crit:#e11d48;--crit-soft:#ffe9ee;--crit-ink:#be123c;
   --good:#16a34a;--good-ink:#15803d;--warn-soft:#fef3c7;--warn-ink:#92400e;
-  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--r:12px;
+  --f-ui:"S-Core Dream","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--r:12px;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#0b1220;--surface:#121b2d;--sunk:#0e1626;--ink:#e8eef8;--ink2:#b6c2d6;--muted:#8393ab;
@@ -23,7 +25,10 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-ui);-webkit-text-size-adjust:100%}
 header{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 header h1{font-size:16px;font-weight:600;margin:0}
-header .meta{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+header .hright{margin-left:auto;display:flex;align-items:center;gap:18px}
+.org{text-align:right;line-height:1.35}.org b{display:block;font-size:13px;font-weight:600;color:var(--accent)}.org span{font-size:11.5px;color:var(--muted)}
+header .meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;padding-left:16px;border-left:1px solid var(--line)}
+@media(max-width:640px){header{padding:10px 14px}header h1{font-size:15px;width:100%}header .hright{margin-left:0;width:100%;justify-content:space-between;gap:10px}.org{text-align:left}header .meta{padding-left:10px}}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
 .dot[data-s=live]{background:var(--good)}.dot[data-s=stale]{background:var(--online)}.dot[data-s=error]{background:var(--crit)}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -131,7 +136,10 @@ nav.bottom{display:none}
 <body>
 <header>
   <h1>간호국 보수교육 이수 대시보드</h1>
-  <div class="meta"><span class="dot" id="dot" data-s="stale"></span><span id="upd">–</span><button class="icon" id="refresh" title="지금 새로 불러오기" aria-label="새로고침">⟳</button></div>
+  <div class="hright">
+    <div class="org"><b>인제대학교 해운대백병원 간호국</b><span>관리자(교육파트장)</span></div>
+    <div class="meta"><span class="dot" id="dot" data-s="stale"></span><span id="upd">–</span><button class="icon" id="refresh" title="지금 새로 불러오기" aria-label="새로고침">⟳</button></div>
+  </div>
 </header>
 <nav class="top" id="navtop"></nav>
 <div class="filters" id="filters"></div>

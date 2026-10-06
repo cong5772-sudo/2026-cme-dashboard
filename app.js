@@ -172,7 +172,7 @@ function p2() {
   <div class="tw"><table><thead><tr><th>간호단위</th><th class="num">이수(명)</th><th class="num">대면 명(%)</th><th class="num">온라인 명(%)</th><th>대면/온라인</th><th class="num np">기타 / 필수(명)</th></tr></thead>
   <tbody>${body || '<tr><td colspan="7" class="msg">해당 기간 데이터가 없습니다.</td></tr>'}</tbody>
   <tfoot><tr><td>전체 합계</td>${cell(tot.f, tot.o)}<td></td><td class="num np">${tot.etc} / ${tot.req}</td></tr></tfoot></table></div>
-  <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.</div></section>`;
+  <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · 관리자(교육파트장)</div></div></section>`;
 }
 
 /* ---------- 페이지 3 ---------- */
