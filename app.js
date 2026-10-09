@@ -295,11 +295,13 @@ function filters() {
   const md = mgrDepts(), lockOne = !!md && md.length === 1;
   const ys = years();
   const dp = deptOptions();
-  $('filters').innerHTML = `<div class="fg"><span class="fl">기준일시</span>${[['all', '전체'], ...ys.map(y => [y, y + '년'])].map(([v, l]) => `<button class="chip" data-act="year" data-v="${v}" aria-pressed="${S.year === (v === 'all' ? 'all' : +v)}">${l}</button>`).join('')}</div>
+  const sumTxt = (S.year === 'all' ? '전체 기간' : S.year + '년') + (msText() ? ' · ' + msText() : ' · 월 전체') + ((deptText() || (md ? '내 부서' : '')) ? ' · ' + (deptText() || '내 부서') : '');
+  $('filters').classList.toggle('open', !!S.fopen);
+  $('filters').innerHTML = `<button class="fsum" data-act="ftoggle" aria-expanded="${!!S.fopen}"><span class="fs-l">기준일시</span><span class="fs-v">${esc(sumTxt)}</span><span class="fs-h">${S.fopen ? '접기' : '조절'}</span><span class="fs-c">▾</span></button><div class="fbody"><div class="fg"><span class="fl">기준일시</span>${[['all', '전체'], ...ys.map(y => [y, y + '년'])].map(([v, l]) => `<button class="chip" data-act="year" data-v="${v}" aria-pressed="${S.year === (v === 'all' ? 'all' : +v)}">${l}</button>`).join('')}</div>
   <div class="fg"><span class="fl">분기</span><button class="chip" data-act="qall" aria-pressed="${!S.ms.length}">전체</button>${[1, 2, 3, 4].map(q => `<button class="chip" data-act="q" data-v="${q}" aria-pressed="${[0, 1, 2].every(k => S.ms.includes(q * 3 - 2 + k))}">${q}분기</button>`).join('')}</div>
   <div class="fg mo"><span class="fl">월</span>${Array.from({ length: 12 }, (_, i) => `<button class="chip" data-act="mo" data-v="${i + 1}" aria-pressed="${S.ms.includes(i + 1)}">${i + 1}월</button>`).join('')}</div>
   <div class="fg dp"><span class="fl">부서${md ? ' <span class="lockt">· 본인 부서만 조회</span>' : ''}</span><select data-act="dept" aria-label="부서 선택" ${lockOne ? 'disabled' : ''}>${lockOne ? '' : `<option value="all">${md ? '내 부서 전체' : '전체 부서'}</option>`}${dp.groups.map(([g, ds]) => `<optgroup label="${esc(g)}">${ds.map(d => `<option value="${esc(d)}" ${S.dept === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</optgroup>`).join('')}</select>
-  <span class="fl">세부부서</span><select data-act="sub" aria-label="세부부서 선택" ${dp.subs.length > 1 ? '' : 'disabled'}><option value="all">${S.dept === 'all' ? '부서를 먼저 선택' : dp.subs.length > 1 ? '전체 세부부서' : '세부부서 없음'}</option>${dp.subs.map(x => `<option value="${esc(x)}" ${S.sub === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>`;
+  <span class="fl">세부부서</span><select data-act="sub" aria-label="세부부서 선택" ${dp.subs.length > 1 ? '' : 'disabled'}><option value="all">${S.dept === 'all' ? '부서를 먼저 선택' : dp.subs.length > 1 ? '전체 세부부서' : '세부부서 없음'}</option>${dp.subs.map(x => `<option value="${esc(x)}" ${S.sub === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div></div>`;
 }
 function nav() {
   const r = role(), ok = ROLE_PAGES[r] || [], lk = ROLE_LOCKED[r] || [];
@@ -498,6 +500,7 @@ document.addEventListener('click', e => {
   else if (a === 'print') { window.print(); return; }
   else if (a === 'rv') S.rv = v;
   else if (a === 'rg') S.rg = v;
+  else if (a === 'ftoggle') { S.fopen = !S.fopen; $('filters').classList.toggle('open', !!S.fopen); const b2 = $('filters').querySelector('.fsum'); if (b2) { b2.setAttribute('aria-expanded', !!S.fopen); b2.querySelector('.fs-h').textContent = S.fopen ? '접기' : '조절'; } return; }
   else if (a === 'xl') { exportRoster(); return; }
   else if (a === 'xlmiss') { exportMissing(); return; }
   else if (a === 'printroster') { printRoster(); return; }
@@ -535,3 +538,11 @@ setInterval(() => reload(), (CFG.REFRESH_MIN || 5) * 60000);
 nav(); render();
 if (S.idt) loadGoogle(S.idt); else if (S.pw) load(S.pw); else if (!CFG.API_URL) load('');
 initGoogle();
+
+/* 고정 헤더 높이 → --hh (줌 배율 보정) */
+(function () {
+  const h = document.querySelector('header'); if (!h) return;
+  const set = () => { const z = parseFloat(getComputedStyle(document.body).zoom) || 1; document.documentElement.style.setProperty('--hh', (h.getBoundingClientRect().height / z).toFixed(1) + 'px'); };
+  set(); window.addEventListener('resize', set);
+  if (window.ResizeObserver) new ResizeObserver(set).observe(h);
+})();
