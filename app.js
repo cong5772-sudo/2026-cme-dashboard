@@ -207,7 +207,7 @@ function p2() {
   <div class="tw"><table><thead><tr><th>간호단위</th><th class="num">이수(명)</th><th class="num">대면 명(%)</th><th class="num">온라인 명(%)</th><th>대면/온라인</th><th class="num np">기타 / 필수(명)</th></tr></thead>
   ${body || '<tbody><tr><td colspan="7" class="msg">해당 기간 데이터가 없습니다.</td></tr></tbody>'}
   <tfoot><tr><td>전체 합계</td>${cell(tot.f, tot.o)}<td></td><td class="num np">${tot.etc} / ${tot.req}</td></tr></tfoot></table></div>
-  <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · 관리자(교육파트장)</div></div></section>${rosterSec()}`;
+  <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · 관리자(교육파트장)</div></div></section>${missingSec()}${rosterSec()}`;
 }
 
 /* ---------- 페이지 3 ---------- */
@@ -394,6 +394,36 @@ function rosterPeople(rows) {
   rows.forEach(r => { const k = r.emp || r.name; const o = m.get(k) || m.set(k, { name: r.name, emp: r.emp, dept: r.dept, sub: r.sub, n: 0, f: 0, o: 0 }).get(k); o.n++; r.f === '대면' ? o.f++ : o.o++; });
   return [...m.values()].sort((a, b) => a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name, 'ko'));
 }
+/* ---------- 결과보고서 미제출 명단 (교육이 끝났는데 결과보고서 제출여부가 Y가 아닌 대상자) ---------- */
+function missingRows() {
+  const due = r => !r.iso || (r.endIso || r.iso) <= TODAY;
+  return REC.filter(r => !r.j && r.name && !r.rp && due(r) && (r.y != null ? inP(r) : S.year === 'all' && !S.ms.length))
+    .sort((a, b) => (a.iso || '9').localeCompare(b.iso || '9') || a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name, 'ko'));
+}
+function missingSec() {
+  if (LOCKED && !S.me) return '';
+  const rows = missingRows();
+  const body = rows.map(r => `<tr><td class="c-d">${dshort(r)}</td><td class="c-u">${deptLabel(r)}</td><td class="c-n">${esc(r.name)}</td><td class="c-s">${esc(r.emp)}</td><td class="c-g">${esc(r.g || '')}</td><td class="wrap c-t">${esc(r.title)}</td><td class="c-f ${r.f === '대면' ? 'f' : 'o'}">${esc(r.f || '')}</td></tr>`).join('');
+  return `<section class="card screen-only" id="missing" style="margin-top:12px">
+    <h2>결과보고서 미제출 명단 <span class="tag ${rows.length ? 'warn' : ''}">${num(rows.length)}건</span></h2>
+    <p class="hint np">${esc(periodLabel())} · 교육이 끝났지만 시트의 결과보고서 제출여부가 <b>Y</b>로 표시되지 않은 대상자입니다. 제출을 잊은 분께 안내해 주세요. 제출 후 시트에 반영되면 목록에서 사라집니다.</p>
+    ${rows.length ? `<div class="rs-tools np"><span class="sp"></span><button class="btn" data-act="xlmiss">엑셀 다운로드</button></div>
+    <div class="rs-scroll tw"><table class="rl"><thead><tr><th>교육일</th><th>부서</th><th>성명</th><th>사번</th><th>구분</th><th>교육명</th><th>형태</th></tr></thead><tbody>${body}</tbody></table></div>`
+      : '<div class="msg" style="padding:14px">조회 조건에 결과보고서 미제출 대상자가 없습니다. 👍</div>'}
+  </section>`;
+}
+async function exportMissing() {
+  try {
+    const rows = missingRows(); if (!rows.length) { alert('미제출 대상자가 없습니다.'); return; }
+    const X = await loadXLSX(), wb = X.utils.book_new();
+    const ws = X.utils.aoa_to_sheet([['교육일', '부서', '성명', '사번', '구분', '교육명', '형태'], ...rows.map(r => [r.iso || '', r.sub && r.sub !== r.dept ? r.dept + ' · ' + r.sub : r.dept, r.name, r.emp, r.g || '', r.title, r.f || ''])]);
+    ws['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 56 }, { wch: 8 }]; ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+    X.utils.book_append_sheet(wb, ws, '결과보고서 미제출');
+    const scope = S.me ? (S.me.all ? '전체부서' : S.me.depts.join('_')) : (S.dept === 'all' ? '전체부서' : S.dept);
+    X.writeFile(wb, `결과보고서_미제출_${periodLabel().replace(/\s+/g, '')}_${scope}.xlsx`.replace(/[\/:*?"<>|]/g, ''));
+  } catch (e) { alert(e.message || e); }
+}
+
 function rosterSec() {
   if (LOCKED && !S.me) return '';
   const all = rosterRows(false), rows = rosterRows(true), people = rosterPeople(rows), c = cnt(rows);
@@ -457,6 +487,7 @@ document.addEventListener('click', e => {
   else if (a === 'print') { window.print(); return; }
   else if (a === 'rv') S.rv = v;
   else if (a === 'xl') { exportRoster(); return; }
+  else if (a === 'xlmiss') { exportMissing(); return; }
   else if (a === 'printroster') { printRoster(); return; }
   else if (a === 'kind') S.kind[v] = !S.kind[v];
   else if (a === 'unlock') { const pw = $('pw').value; if (!pw) return; S.pw = pw; if (SAMPLE) { LOCKED = false; render(); return; } load(pw); return; }
