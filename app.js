@@ -278,18 +278,27 @@ function p5() {
 // 부서 콤보 목록: 부서군 순서대로, 세부부서는 선택한 부서의 것만
 function deptOptions() {
   const rows = REC.filter(r => r.dept && r.y != null);
-  const ds = [...new Set(rows.map(r => r.dept))];
+  const ds = role() === 'mgr' ? S.me.depts.slice() : [...new Set(rows.map(r => r.dept))];
   const groups = GROUPS.map(([g, list]) => [g, list.filter(d => ds.includes(d)).concat(ds.filter(d => grpOf(d) === g && !list.includes(d)).sort())]).filter(([, l]) => l.length);
   const subs = S.dept === 'all' ? [] : [...new Set(rows.filter(r => r.dept === S.dept && r.sub).map(r => r.sub))].sort();
   return { groups, subs };
 }
+// 간호단위 파트장: 본인 부서 밖의 선택은 허용하지 않음(서버도 본인 부서 데이터만 내려줌)
+const mgrDepts = () => role() === 'mgr' ? S.me.depts : null;
+function enforceDept() {
+  const md = mgrDepts(); if (!md) return;
+  if (md.length === 1) S.dept = md[0];
+  else if (S.dept !== 'all' && !md.includes(S.dept)) { S.dept = 'all'; S.sub = 'all'; }
+}
 function filters() {
+  enforceDept();
+  const md = mgrDepts(), lockOne = !!md && md.length === 1;
   const ys = years();
   const dp = deptOptions();
   $('filters').innerHTML = `<div class="fg"><span class="fl">기준일시</span>${[['all', '전체'], ...ys.map(y => [y, y + '년'])].map(([v, l]) => `<button class="chip" data-act="year" data-v="${v}" aria-pressed="${S.year === (v === 'all' ? 'all' : +v)}">${l}</button>`).join('')}</div>
   <div class="fg"><span class="fl">분기</span><button class="chip" data-act="qall" aria-pressed="${!S.ms.length}">전체</button>${[1, 2, 3, 4].map(q => `<button class="chip" data-act="q" data-v="${q}" aria-pressed="${[0, 1, 2].every(k => S.ms.includes(q * 3 - 2 + k))}">${q}분기</button>`).join('')}</div>
   <div class="fg mo"><span class="fl">월</span>${Array.from({ length: 12 }, (_, i) => `<button class="chip" data-act="mo" data-v="${i + 1}" aria-pressed="${S.ms.includes(i + 1)}">${i + 1}월</button>`).join('')}</div>
-  <div class="fg dp"><span class="fl">부서</span><select data-act="dept" aria-label="부서 선택"><option value="all">전체 부서</option>${dp.groups.map(([g, ds]) => `<optgroup label="${esc(g)}">${ds.map(d => `<option value="${esc(d)}" ${S.dept === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</optgroup>`).join('')}</select>
+  <div class="fg dp"><span class="fl">부서${md ? ' <span class="lockt">· 본인 부서만 조회</span>' : ''}</span><select data-act="dept" aria-label="부서 선택" ${lockOne ? 'disabled' : ''}>${lockOne ? '' : `<option value="all">${md ? '내 부서 전체' : '전체 부서'}</option>`}${dp.groups.map(([g, ds]) => `<optgroup label="${esc(g)}">${ds.map(d => `<option value="${esc(d)}" ${S.dept === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</optgroup>`).join('')}</select>
   <span class="fl">세부부서</span><select data-act="sub" aria-label="세부부서 선택" ${dp.subs.length > 1 ? '' : 'disabled'}><option value="all">${S.dept === 'all' ? '부서를 먼저 선택' : dp.subs.length > 1 ? '전체 세부부서' : '세부부서 없음'}</option>${dp.subs.map(x => `<option value="${esc(x)}" ${S.sub === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>`;
 }
 function nav() {
@@ -498,7 +507,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.dataset.act === 'dept') { S.dept = t.value; S.sub = 'all'; }
+  if (t.dataset.act === 'dept') { if (mgrDepts() && t.value !== 'all' && !mgrDepts().includes(t.value)) return; S.dept = t.value; S.sub = 'all'; }
   else if (t.dataset.act === 'sub') S.sub = t.value;
   else return;
   render();
