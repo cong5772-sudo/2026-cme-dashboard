@@ -25,7 +25,7 @@ let RAW = null, REC = [], LOCKED = true, SAMPLE = false;
 /* ---------- 접근 구분 ---------- */
 // admin: 간호교육팀(비밀번호) 전체 / all: 간호국(구글, 전체 부서) / mgr: 간호단위 파트장(구글, 본인 부서만)
 const GCID = CFG.GOOGLE_CLIENT_ID || '';
-S.idt = ''; S.me = null; S.rv = 'list';
+S.idt = ''; S.me = null; S.rv = 'list'; S.rg = 'all';
 try { S.idt = sessionStorage.getItem('cme.idt') || ''; } catch (e) {}
 const role = () => S.me ? (S.me.all ? 'all' : 'mgr') : (RAW && !LOCKED ? 'admin' : null);
 const ROLE_PAGES = { admin: ['p1', 'p2', 'p3', 'p4', 'p5'], all: ['p1', 'p2', 'p4'], mgr: ['p2'] };
@@ -386,12 +386,12 @@ async function initGoogle() {
 /* ---------- 세부 이수 명단 (이름·사번 포함) + 엑셀 · PDF ---------- */
 function rosterRows(useSearch) {
   const q = useSearch ? S.search.trim() : '';
-  return REC.filter(r => !r.j && r.g === '보수' && r.f && r.y != null && r.name && inP(r) && (!q || r.name.includes(q) || String(r.emp).includes(q) || r.title.includes(q)))
+  return REC.filter(r => !r.j && r.g && (S.rg === 'all' || r.g === S.rg) && r.y != null && r.name && inP(r) && (!q || r.name.includes(q) || String(r.emp).includes(q) || r.title.includes(q)))
     .sort((a, b) => (a.iso || '9').localeCompare(b.iso || '9') || a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name, 'ko'));
 }
 function rosterPeople(rows) {
   const m = new Map();
-  rows.forEach(r => { const k = r.emp || r.name; const o = m.get(k) || m.set(k, { name: r.name, emp: r.emp, dept: r.dept, sub: r.sub, n: 0, f: 0, o: 0 }).get(k); o.n++; r.f === '대면' ? o.f++ : o.o++; });
+  rows.forEach(r => { const k = r.emp || r.name; const o = m.get(k) || m.set(k, { name: r.name, emp: r.emp, dept: r.dept, sub: r.sub, n: 0, f: 0, o: 0, g: { 보수: 0, 기타: 0, 필수: 0 } }).get(k); o.n++; o.g[r.g]++; if (r.f === '대면') o.f++; else if (r.f === '온라인') o.o++; });
   return [...m.values()].sort((a, b) => a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name, 'ko'));
 }
 /* ---------- 결과보고서 미제출 명단 (교육이 끝났는데 결과보고서 제출여부가 Y가 아닌 대상자) ---------- */
@@ -426,19 +426,21 @@ async function exportMissing() {
 
 function rosterSec() {
   if (LOCKED && !S.me) return '';
-  const all = rosterRows(false), rows = rosterRows(true), people = rosterPeople(rows), c = cnt(rows);
+  const all = rosterRows(false), rows = rosterRows(true), people = rosterPeople(rows), c = cnt(rows), gc = { 보수: 0, 기타: 0, 필수: 0 };
+  rows.forEach(r => gc[r.g]++);
   const scope = S.me ? (S.me.all ? '전체 부서' : S.me.depts.join('·')) : (S.dept === 'all' ? '전체 부서' : deptText());
   const list = S.rv === 'list'
-    ? `<thead><tr><th>교육일</th><th>부서</th><th>성명</th><th>사번</th><th>교육명</th><th>형태</th></tr></thead><tbody>${rows.map(r => `<tr><td class="c-d">${dshort(r)}</td><td class="c-u">${deptLabel(r)}</td><td class="c-n">${esc(r.name)}</td><td class="c-s">${esc(r.emp)}</td><td class="wrap c-t">${esc(r.title)}</td><td class="c-f ${r.f === '대면' ? 'f' : 'o'}">${r.f}</td></tr>`).join('') || '<tr><td colspan="6" class="msg">조회 조건에 해당하는 이수 명단이 없습니다.</td></tr>'}</tbody>`
-    : `<thead><tr><th>성명</th><th>사번</th><th>부서</th><th class="num">이수(건)</th><th class="num">대면</th><th class="num">온라인</th></tr></thead><tbody>${people.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.emp)}</td><td>${esc(p.sub && p.sub !== p.dept ? p.dept + ' · ' + p.sub : p.dept)}</td><td class="num">${p.n}</td><td class="num">${p.f}</td><td class="num">${p.o}</td></tr>`).join('') || '<tr><td colspan="6" class="msg">조회 조건에 해당하는 이수 명단이 없습니다.</td></tr>'}</tbody>`;
+    ? `<thead><tr><th>교육일</th><th>부서</th><th>성명</th><th>사번</th><th>구분</th><th>교육명</th><th>형태</th></tr></thead><tbody>${rows.map(r => `<tr><td class="c-d">${dshort(r)}</td><td class="c-u">${deptLabel(r)}</td><td class="c-n">${esc(r.name)}</td><td class="c-s">${esc(r.emp)}</td><td class="c-g"><span class="gt gt-${esc(r.g)}">${esc(r.g)}</span></td><td class="wrap c-t">${esc(r.title)}</td><td class="c-f ${r.f === '대면' ? 'f' : 'o'}">${esc(r.f || '–')}</td></tr>`).join('') || '<tr><td colspan="7" class="msg">조회 조건에 해당하는 이수 명단이 없습니다.</td></tr>'}</tbody>`
+    : `<thead><tr><th>성명</th><th>사번</th><th>부서</th><th class="num">이수(건)</th><th class="num">보수</th><th class="num">기타</th><th class="num">필수</th></tr></thead><tbody>${people.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.emp)}</td><td>${esc(p.sub && p.sub !== p.dept ? p.dept + ' · ' + p.sub : p.dept)}</td><td class="num">${p.n}</td><td class="num">${p.g.보수 || '–'}</td><td class="num">${p.g.기타 || '–'}</td><td class="num">${p.g.필수 || '–'}</td></tr>`).join('') || '<tr><td colspan="7" class="msg">조회 조건에 해당하는 이수 명단이 없습니다.</td></tr>'}</tbody>`;
   return `<section class="card screen-only" id="roster" style="margin-top:12px">
     <h2>세부 이수 명단 <span class="tag">${esc(scope)}</span></h2>
-    <p class="hint np">${esc(periodLabel())} · 보수교육(간호조무사 제외) · 상단 조회 조건(기간·부서)이 그대로 적용됩니다. 이름·사번이 포함된 개인정보이니 부서 내에서만 사용하세요.</p>
+    <p class="hint np">${esc(periodLabel())} · 보수·기타·필수교육(간호조무사 제외) · 상단 조회 조건(기간·부서)이 그대로 적용됩니다. 구분 버튼으로 교육 종류를 골라 볼 수 있습니다. 이름·사번이 포함된 개인정보이니 부서 내에서만 사용하세요.</p>
     <div class="rs-tools np"><div class="tg2" role="group" aria-label="보기"><button data-act="rv" data-v="list" aria-pressed="${S.rv === 'list'}">교육별 명단</button><button data-act="rv" data-v="person" aria-pressed="${S.rv === 'person'}">직원별 요약</button></div>
+      <div class="tg2" role="group" aria-label="교육 구분">${[['all', '전체'], ['보수', '보수'], ['기타', '기타'], ['필수', '필수']].map(([v, l]) => `<button data-act="rg" data-v="${v}" aria-pressed="${S.rg === v}">${l}</button>`).join('')}</div>
       <input type="search" id="q" placeholder="이름·사번·교육명 검색" value="${esc(S.search)}"><span class="note">이수 <b>${num(c.t)}</b>건${S.rv === 'person' ? ` · 직원 <b>${num(people.length)}</b>명` : ''}${rows.length !== all.length ? ` (검색 전 ${num(all.length)}건)` : ''}</span><span class="sp"></span>
       <button class="btn pri" data-act="xl">엑셀 다운로드</button><button class="btn" data-act="printroster">PDF 출력</button></div>
-    <div class="printhead"><h1>부서별 보수교육 세부 이수 명단</h1><div class="pmeta"><span><b>기준일시</b> ${esc(periodLabel())}</span><span><b>부서</b> ${esc(scope)}</span><span><b>출력일시</b> ${printStamp()}</span></div>
-      <div class="psum">이수 <b>${num(rows.length)}건</b> · 대면 <b>${num(c.f)}건</b> · 온라인 <b>${num(c.o)}건</b>${S.rv === 'person' ? ` · 직원 <b>${num(people.length)}명</b>` : ''}</div></div>
+    <div class="printhead"><h1>부서별 세부 이수 명단</h1><div class="pmeta"><span><b>기준일시</b> ${esc(periodLabel())}</span><span><b>부서</b> ${esc(scope)}</span><span><b>구분</b> ${S.rg === 'all' ? '보수·기타·필수' : esc(S.rg)}</span><span><b>출력일시</b> ${printStamp()}</span></div>
+      <div class="psum">이수 <b>${num(rows.length)}건</b> · 보수 <b>${num(gc.보수)}</b> · 기타 <b>${num(gc.기타)}</b> · 필수 <b>${num(gc.필수)}</b>${S.rv === 'person' ? ` · 직원 <b>${num(people.length)}명</b>` : ''}</div></div>
     <div class="rs-scroll tw"><table class="${S.rv === 'list' ? 'rl' : ''}">${list}</table></div>
     <div class="printfoot">※ 간호조무사 제외, 교육 당시 부서 기준입니다. 이름·사번이 포함되어 있으므로 외부로 공유하지 마세요.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · ${esc(roleLabel())}</div></div></section>`;
 }
@@ -455,15 +457,15 @@ async function exportRoster() {
     const rows = rosterRows(false); if (!rows.length) { alert('조회 조건에 해당하는 이수 명단이 없습니다.'); return; }
     const X = await loadXLSX(), wb = X.utils.book_new(), people = rosterPeople(rows);
     const scope = S.me ? (S.me.all ? '전체부서' : S.me.depts.join('_')) : (S.dept === 'all' ? '전체부서' : S.dept);
-    const byD = {}; rows.forEach(r => { const o = byD[r.dept] || (byD[r.dept] = { n: 0, f: 0, o: 0, p: new Set() }); o.n++; r.f === '대면' ? o.f++ : o.o++; o.p.add(r.emp || r.name); });
-    const c = cnt(rows);
-    const sum = X.utils.aoa_to_sheet([[`부서별 보수교육 세부 이수 명단 · ${periodLabel()} · ${scope} · ${printStamp()} 출력`], [], ['부서', '이수(건)', '대면', '온라인', '직원(명)'],
-      ...Object.keys(byD).sort().map(d => [d, byD[d].n, byD[d].f, byD[d].o, byD[d].p.size]), ['합계', c.t, c.f, c.o, people.length]]);
-    sum['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 10 }]; X.utils.book_append_sheet(wb, sum, '요약');
-    const pw = X.utils.aoa_to_sheet([['성명', '사번', '부서', '이수(건)', '대면', '온라인'], ...people.map(p => [p.name, p.emp, p.sub && p.sub !== p.dept ? p.dept + ' · ' + p.sub : p.dept, p.n, p.f, p.o])]);
-    pw['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 9 }, { wch: 7 }, { wch: 8 }]; pw['!freeze'] = { xSplit: 0, ySplit: 1 }; X.utils.book_append_sheet(wb, pw, '직원별');
-    const lw = X.utils.aoa_to_sheet([['교육일', '부서', '성명', '사번', '교육명', '형태'], ...rows.map(r => [r.iso || '', r.sub && r.sub !== r.dept ? r.dept + ' · ' + r.sub : r.dept, r.name, r.emp, r.title, r.f])]);
-    lw['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 56 }, { wch: 8 }]; lw['!freeze'] = { xSplit: 0, ySplit: 1 }; X.utils.book_append_sheet(wb, lw, '이수 명단');
+    const byD = {}; rows.forEach(r => { const o = byD[r.dept] || (byD[r.dept] = { n: 0, b: 0, e: 0, q: 0, p: new Set() }); o.n++; if (r.g === '보수') o.b++; else if (r.g === '기타') o.e++; else o.q++; o.p.add(r.emp || r.name); });
+    const gt = { n: rows.length, b: rows.filter(r => r.g === '보수').length, e: rows.filter(r => r.g === '기타').length, q: rows.filter(r => r.g === '필수').length };
+    const sum = X.utils.aoa_to_sheet([[`부서별 세부 이수 명단(보수·기타·필수) · ${periodLabel()} · ${scope} · ${printStamp()} 출력`], [], ['부서', '이수(건)', '보수', '기타', '필수', '직원(명)'],
+      ...Object.keys(byD).sort().map(d => [d, byD[d].n, byD[d].b, byD[d].e, byD[d].q, byD[d].p.size]), ['합계', gt.n, gt.b, gt.e, gt.q, people.length]]);
+    sum['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }]; X.utils.book_append_sheet(wb, sum, '요약');
+    const pw = X.utils.aoa_to_sheet([['성명', '사번', '부서', '이수(건)', '보수', '기타', '필수'], ...people.map(p => [p.name, p.emp, p.sub && p.sub !== p.dept ? p.dept + ' · ' + p.sub : p.dept, p.n, p.g.보수, p.g.기타, p.g.필수])]);
+    pw['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 9 }, { wch: 7 }, { wch: 7 }, { wch: 7 }]; pw['!freeze'] = { xSplit: 0, ySplit: 1 }; X.utils.book_append_sheet(wb, pw, '직원별');
+    const lw = X.utils.aoa_to_sheet([['교육일', '부서', '성명', '사번', '구분', '교육명', '형태'], ...rows.map(r => [r.iso || '', r.sub && r.sub !== r.dept ? r.dept + ' · ' + r.sub : r.dept, r.name, r.emp, r.g, r.title, r.f || ''])]);
+    lw['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 56 }, { wch: 8 }]; lw['!freeze'] = { xSplit: 0, ySplit: 1 }; X.utils.book_append_sheet(wb, lw, '이수 명단');
     X.writeFile(wb, `보수교육_세부명단_${periodLabel().replace(/\s+/g, '')}_${scope}.xlsx`.replace(/[\\/:*?"<>|]/g, ''));
   } catch (e) { alert(e.message || e); }
 }
@@ -486,6 +488,7 @@ document.addEventListener('click', e => {
   else if (a === 'view') S.view = v;
   else if (a === 'print') { window.print(); return; }
   else if (a === 'rv') S.rv = v;
+  else if (a === 'rg') S.rg = v;
   else if (a === 'xl') { exportRoster(); return; }
   else if (a === 'xlmiss') { exportMissing(); return; }
   else if (a === 'printroster') { printRoster(); return; }
