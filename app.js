@@ -22,10 +22,30 @@ const S = { page: 'p1', year: null, ms: [], sub: 'all', grp: 'all', dept: 'all',
 try { S.pw = sessionStorage.getItem('cme.pw') || ''; } catch (e) {}
 let RAW = null, REC = [], LOCKED = true, SAMPLE = false;
 
+/* ---------- 접근 구분 ---------- */
+// admin: 간호교육팀(비밀번호) 전체 / all: 간호국(구글, 전체 부서) / mgr: 간호단위 파트장(구글, 본인 부서만)
+const GCID = CFG.GOOGLE_CLIENT_ID || '';
+S.idt = ''; S.me = null; S.rv = 'list';
+try { S.idt = sessionStorage.getItem('cme.idt') || ''; } catch (e) {}
+const role = () => S.me ? (S.me.all ? 'all' : 'mgr') : (RAW && !LOCKED ? 'admin' : null);
+const ROLE_PAGES = { admin: ['p1', 'p2', 'p3', 'p4', 'p5'], all: ['p1', 'p2', 'p4'], mgr: ['p2'] };
+const ROLE_LOCKED = { all: ['p3', 'p5'] }; // 메뉴에는 보이지만 🔒 (간호교육팀 전용)
+const roleLabel = () => ({ admin: '관리자 (간호교육팀)', all: '관리자 (간호국)', mgr: '관리자 (간호단위 파트장)' })[role()] + (S.me ? ' · ' + S.me.name : '');
+const canGo = id => (ROLE_PAGES[role()] || []).includes(id);
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pct = (n, d) => d ? (n / d * 100).toFixed(1) + '%' : '–';
 const num = n => Number(n).toLocaleString('ko-KR');
+// 구글 웹앱은 첫 호출에 일시 오류(HTML)가 나는 경우가 있어 읽기 요청은 한 번 더 시도
+async function fetchJson(url, opts, retry) {
+  for (let i = 0; ; i++) {
+    try {
+      const r = await fetch(url, opts), t = await r.text();
+      try { return JSON.parse(t); } catch (_) { throw new Error('서버가 일시적으로 응답하지 않았습니다. 잠시 후 다시 시도해 주세요.'); }
+    } catch (e) { if (!retry || i >= 1) throw e; await new Promise(res => setTimeout(res, 2000)); }
+  }
+}
 
 /* ---------- 정규화 ---------- */
 function pdate(s) {
@@ -187,7 +207,7 @@ function p2() {
   <div class="tw"><table><thead><tr><th>간호단위</th><th class="num">이수(명)</th><th class="num">대면 명(%)</th><th class="num">온라인 명(%)</th><th>대면/온라인</th><th class="num np">기타 / 필수(명)</th></tr></thead>
   ${body || '<tbody><tr><td colspan="7" class="msg">해당 기간 데이터가 없습니다.</td></tr></tbody>'}
   <tfoot><tr><td>전체 합계</td>${cell(tot.f, tot.o)}<td></td><td class="num np">${tot.etc} / ${tot.req}</td></tr></tfoot></table></div>
-  <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · 관리자(교육파트장)</div></div></section>`;
+  <div class="printfoot">※ 대면·온라인 비율은 부서별 보수교육 이수 건수 기준, 간호조무사 제외, 교육 당시 부서 기준입니다.<br>※ 분홍색 행은 온라인 이수 비율이 ${Math.round(LIMIT * 100)}%를 초과한 부서입니다.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · 관리자(교육파트장)</div></div></section>${rosterSec()}`;
 }
 
 /* ---------- 페이지 3 ---------- */
@@ -273,11 +293,22 @@ function filters() {
   <span class="fl">세부부서</span><select data-act="sub" aria-label="세부부서 선택" ${dp.subs.length > 1 ? '' : 'disabled'}><option value="all">${S.dept === 'all' ? '부서를 먼저 선택' : dp.subs.length > 1 ? '전체 세부부서' : '세부부서 없음'}</option>${dp.subs.map(x => `<option value="${esc(x)}" ${S.sub === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>`;
 }
 function nav() {
+  const r = role(), ok = ROLE_PAGES[r] || [], lk = ROLE_LOCKED[r] || [];
+  const show = PAGES.filter(([id]) => ok.includes(id) || lk.includes(id));
   const lock = svg(ICON.lock, 12);
-  $('navtop').innerHTML = PAGES.map(([id, l, lk]) => `<button class="navbtn" data-act="page" data-v="${id}" ${S.page === id ? 'aria-current="page"' : ''}><span class="ic">${svg(ICON[id], 18)}</span><span class="tx">${l}</span>${lk ? `<span class="lk" title="비밀번호 필요">${lock}</span>` : ''}</button>`).join('');
-  $('navbot').innerHTML = PAGES.map(([id, l, lk]) => `<button data-act="page" data-v="${id}" ${S.page === id ? 'aria-current="page"' : ''}><b>${svg(ICON[id], 21)}</b>${l}${lk ? ' ' + lock : ''}</button>`).join('');
+  $('navtop').innerHTML = show.map(([id, l]) => { const d = lk.includes(id); return `<button class="navbtn${d ? ' lkd' : ''}" data-act="page" data-v="${id}" ${S.page === id ? 'aria-current="page"' : ''}${d ? ' title="간호교육팀 관리자만 사용할 수 있습니다"' : ''}><span class="ic">${svg(ICON[id], 18)}</span><span class="tx">${l}</span>${d ? `<span class="lk" title="간호교육팀 전용">${lock}</span>` : ''}</button>`; }).join('');
+  $('navbot').innerHTML = show.map(([id, l]) => { const d = lk.includes(id); return `<button class="${d ? 'lkd' : ''}" data-act="page" data-v="${id}" ${S.page === id ? 'aria-current="page"' : ''}><b>${svg(ICON[id], 21)}</b>${l}${d ? ' ' + lock : ''}</button>`; }).join('');
+}
+function applyAuth() {
+  const r = role(), ok = ROLE_PAGES[r] || [];
+  $('login').hidden = !!r; document.body.classList.toggle('locked', !r);
+  $('role').hidden = $('logout').hidden = $('edulink').hidden = !r;
+  if (r) { $('role').textContent = roleLabel(); if (!ok.includes(S.page)) { S.page = ok[0]; try { history.replaceState(null, '', '#' + S.page); } catch (e) {} } }
+  else { $('lgerr').textContent = S.pwErr || ''; }
 }
 function render() {
+  applyAuth();
+  if (!role()) { $('view').innerHTML = ''; return; }
   nav();
   if (!REC.length && !RAW) return;
   if (S.year == null) { const ys = years().filter(y => y <= THIS_Y); S.year = ys[0] ?? 'all'; }
@@ -294,30 +325,129 @@ function apply(data, state) {
   render();
 }
 async function load(pw) {
-  let cached = null;
-  if (!RAW) { try { cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (e) {} if (cached?.rows) apply(cached, 'stale'); }
   try {
     let url = 'sample.json';
     if (CFG.API_URL) url = CFG.API_URL + (CFG.API_URL.includes('?') ? '&' : '?') + 'app=cme' + (pw ? '&pw=' + encodeURIComponent(pw) : '');
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    const data = await fetchJson(url, { cache: 'no-store' }, true);
     if (data.error) throw new Error(data.error);
     if (pw && data.pwError) { S.pwErr = '비밀번호가 올바르지 않습니다.'; S.pw = ''; try { sessionStorage.removeItem('cme.pw'); } catch (e) {} }
     else if (pw && data.locked === false) { S.pwErr = ''; try { sessionStorage.setItem('cme.pw', pw); } catch (e) {} }
     apply(data, 'live');
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, rows: data.rows.map(({ nm, e, rm, ...r }) => r) })); } catch (e) {}
   } catch (err) {
-    if (RAW) setState('error', '불러오기 실패 · 저장본 표시 중'); else $('view').innerHTML = `<div class="msg">데이터를 불러오지 못했습니다.<br><small>${esc(err.message)}</small><br>잠시 후 새로고침해 주세요.</div>`;
+    S.pwErr = '서버에 연결하지 못했습니다: ' + String(err.message || err);
+    if (RAW) setState('error', '불러오기 실패 · 이전 데이터 표시 중'); else render();
     setState('error');
   }
+}
+// 구글 로그인(간호국·파트장): 서버가 이메일을 확인해 허용된 부서의 명단만 내려줌
+async function loadGoogle(cred) {
+  try {
+    const url = CFG.API_URL + (CFG.API_URL.includes('?') ? '&' : '?') + 'app=cme&idt=' + encodeURIComponent(cred);
+    const data = await fetchJson(url, { cache: 'no-store' }, true);
+    if (data.error) throw new Error(data.error);
+    S.idt = cred; S.me = data.me; S.pw = ''; S.pwErr = '';
+    try { sessionStorage.setItem('cme.idt', cred); sessionStorage.removeItem('cme.pw'); } catch (e) {}
+    apply(data, 'live'); $('lgerr2').textContent = '';
+    return true;
+  } catch (err) {
+    const msg = String(err.message || err);
+    if (!S.me || /만료|올바르지|등록되지|대시보드용|발급자|인증되지|로그인 정보/.test(msg)) { resetData(); $('lgerr2').textContent = msg; render(); }
+    else setState('error', '불러오기 실패 · 이전 데이터 표시 중');
+    return false;
+  }
+}
+function resetData() {
+  S.pw = ''; S.idt = ''; S.me = null; RAW = null; REC = []; LOCKED = true;
+  ['cme.pw', 'cme.idt'].forEach(k => { try { sessionStorage.removeItem(k); } catch (e) {} });
+}
+function logout() {
+  resetData(); S.pwErr = ''; S.search = ''; $('lgerr2').textContent = '';
+  try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+  render(); initGoogle();
+}
+const reload = () => S.idt ? loadGoogle(S.idt) : (S.pw ? load(S.pw) : (CFG.API_URL ? null : load('')));
+
+/* ---------- 구글 로그인 버튼 ---------- */
+let GIS_P = null, GIS_INIT = false;
+const loadGIS = () => (window.google && google.accounts && google.accounts.id) ? Promise.resolve() : (GIS_P ||= new Promise((res, rej) => {
+  const el = document.createElement('script'); el.src = 'https://accounts.google.com/gsi/client'; el.async = true; el.onload = res;
+  el.onerror = () => { GIS_P = null; rej(new Error('구글 로그인 스크립트를 불러오지 못했습니다. 인터넷 연결을 확인하세요.')); }; document.head.appendChild(el);
+}));
+async function initGoogle() {
+  if (role()) return;
+  if (!GCID || !CFG.API_URL) { $('lgerr2').textContent = '구글 로그인이 설정되지 않았습니다. 교육팀에 문의하세요.'; return; }
+  try {
+    await loadGIS();
+    if (!GIS_INIT) { google.accounts.id.initialize({ client_id: GCID, callback: r => { $('lgerr2').textContent = '확인 중… (처음에는 30초 정도 걸릴 수 있습니다)'; loadGoogle(r.credential); }, auto_select: false }); GIS_INIT = true; }
+    $('lgbtn').innerHTML = ''; google.accounts.id.renderButton($('lgbtn'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'ko', width: 260 });
+  } catch (e) { $('lgerr2').textContent = String(e.message || e); }
+}
+
+/* ---------- 세부 이수 명단 (이름·사번 포함) + 엑셀 · PDF ---------- */
+function rosterRows(useSearch) {
+  const q = useSearch ? S.search.trim() : '';
+  return REC.filter(r => !r.j && r.g === '보수' && r.f && r.y != null && r.name && inP(r) && (!q || r.name.includes(q) || String(r.emp).includes(q) || r.title.includes(q)))
+    .sort((a, b) => (a.iso || '9').localeCompare(b.iso || '9') || a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name, 'ko'));
+}
+function rosterPeople(rows) {
+  const m = new Map();
+  rows.forEach(r => { const k = r.emp || r.name; const o = m.get(k) || m.set(k, { name: r.name, emp: r.emp, dept: r.dept, sub: r.sub, n: 0, f: 0, o: 0 }).get(k); o.n++; r.f === '대면' ? o.f++ : o.o++; });
+  return [...m.values()].sort((a, b) => a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name, 'ko'));
+}
+function rosterSec() {
+  if (LOCKED && !S.me) return '';
+  const all = rosterRows(false), rows = rosterRows(true), people = rosterPeople(rows), c = cnt(rows);
+  const scope = S.me ? (S.me.all ? '전체 부서' : S.me.depts.join('·')) : (S.dept === 'all' ? '전체 부서' : deptText());
+  const list = S.rv === 'list'
+    ? `<thead><tr><th>교육일</th><th>부서</th><th>성명</th><th>사번</th><th>교육명</th><th>형태</th></tr></thead><tbody>${rows.map(r => `<tr><td class="c-d">${dshort(r)}</td><td class="c-u">${deptLabel(r)}</td><td class="c-n">${esc(r.name)}</td><td class="c-s">${esc(r.emp)}</td><td class="wrap c-t">${esc(r.title)}</td><td class="c-f ${r.f === '대면' ? 'f' : 'o'}">${r.f}</td></tr>`).join('') || '<tr><td colspan="6" class="msg">조회 조건에 해당하는 이수 명단이 없습니다.</td></tr>'}</tbody>`
+    : `<thead><tr><th>성명</th><th>사번</th><th>부서</th><th class="num">이수(건)</th><th class="num">대면</th><th class="num">온라인</th></tr></thead><tbody>${people.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.emp)}</td><td>${esc(p.sub && p.sub !== p.dept ? p.dept + ' · ' + p.sub : p.dept)}</td><td class="num">${p.n}</td><td class="num">${p.f}</td><td class="num">${p.o}</td></tr>`).join('') || '<tr><td colspan="6" class="msg">조회 조건에 해당하는 이수 명단이 없습니다.</td></tr>'}</tbody>`;
+  return `<section class="card screen-only" id="roster" style="margin-top:12px">
+    <h2>세부 이수 명단 <span class="tag">${esc(scope)}</span></h2>
+    <p class="hint np">${esc(periodLabel())} · 보수교육(간호조무사 제외) · 상단 조회 조건(기간·부서)이 그대로 적용됩니다. 이름·사번이 포함된 개인정보이니 부서 내에서만 사용하세요.</p>
+    <div class="rs-tools np"><div class="tg2" role="group" aria-label="보기"><button data-act="rv" data-v="list" aria-pressed="${S.rv === 'list'}">교육별 명단</button><button data-act="rv" data-v="person" aria-pressed="${S.rv === 'person'}">직원별 요약</button></div>
+      <input type="search" id="q" placeholder="이름·사번·교육명 검색" value="${esc(S.search)}"><span class="note">이수 <b>${num(c.t)}</b>건${S.rv === 'person' ? ` · 직원 <b>${num(people.length)}</b>명` : ''}${rows.length !== all.length ? ` (검색 전 ${num(all.length)}건)` : ''}</span><span class="sp"></span>
+      <button class="btn pri" data-act="xl">엑셀 다운로드</button><button class="btn" data-act="printroster">PDF 출력</button></div>
+    <div class="printhead"><h1>부서별 보수교육 세부 이수 명단</h1><div class="pmeta"><span><b>기준일시</b> ${esc(periodLabel())}</span><span><b>부서</b> ${esc(scope)}</span><span><b>출력일시</b> ${printStamp()}</span></div>
+      <div class="psum">이수 <b>${num(rows.length)}건</b> · 대면 <b>${num(c.f)}건</b> · 온라인 <b>${num(c.o)}건</b>${S.rv === 'person' ? ` · 직원 <b>${num(people.length)}명</b>` : ''}</div></div>
+    <div class="rs-scroll tw"><table class="${S.rv === 'list' ? 'rl' : ''}">${list}</table></div>
+    <div class="printfoot">※ 간호조무사 제외, 교육 당시 부서 기준입니다. 이름·사번이 포함되어 있으므로 외부로 공유하지 마세요.<div style="margin-top:3mm;text-align:right;color:#333;font-weight:600">인제대학교 해운대백병원 간호국 · ${esc(roleLabel())}</div></div></section>`;
+}
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((res, rej) => {
+    const el = document.createElement('script'); el.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    el.onload = () => res(window.XLSX); el.onerror = () => rej(new Error('엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.'));
+    document.head.appendChild(el);
+  });
+}
+async function exportRoster() {
+  try {
+    const rows = rosterRows(false); if (!rows.length) { alert('조회 조건에 해당하는 이수 명단이 없습니다.'); return; }
+    const X = await loadXLSX(), wb = X.utils.book_new(), people = rosterPeople(rows);
+    const scope = S.me ? (S.me.all ? '전체부서' : S.me.depts.join('_')) : (S.dept === 'all' ? '전체부서' : S.dept);
+    const byD = {}; rows.forEach(r => { const o = byD[r.dept] || (byD[r.dept] = { n: 0, f: 0, o: 0, p: new Set() }); o.n++; r.f === '대면' ? o.f++ : o.o++; o.p.add(r.emp || r.name); });
+    const c = cnt(rows);
+    const sum = X.utils.aoa_to_sheet([[`부서별 보수교육 세부 이수 명단 · ${periodLabel()} · ${scope} · ${printStamp()} 출력`], [], ['부서', '이수(건)', '대면', '온라인', '직원(명)'],
+      ...Object.keys(byD).sort().map(d => [d, byD[d].n, byD[d].f, byD[d].o, byD[d].p.size]), ['합계', c.t, c.f, c.o, people.length]]);
+    sum['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 10 }]; X.utils.book_append_sheet(wb, sum, '요약');
+    const pw = X.utils.aoa_to_sheet([['성명', '사번', '부서', '이수(건)', '대면', '온라인'], ...people.map(p => [p.name, p.emp, p.sub && p.sub !== p.dept ? p.dept + ' · ' + p.sub : p.dept, p.n, p.f, p.o])]);
+    pw['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 9 }, { wch: 7 }, { wch: 8 }]; pw['!freeze'] = { xSplit: 0, ySplit: 1 }; X.utils.book_append_sheet(wb, pw, '직원별');
+    const lw = X.utils.aoa_to_sheet([['교육일', '부서', '성명', '사번', '교육명', '형태'], ...rows.map(r => [r.iso || '', r.sub && r.sub !== r.dept ? r.dept + ' · ' + r.sub : r.dept, r.name, r.emp, r.title, r.f])]);
+    lw['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 56 }, { wch: 8 }]; lw['!freeze'] = { xSplit: 0, ySplit: 1 }; X.utils.book_append_sheet(wb, lw, '이수 명단');
+    X.writeFile(wb, `보수교육_세부명단_${periodLabel().replace(/\s+/g, '')}_${scope}.xlsx`.replace(/[\\/:*?"<>|]/g, ''));
+  } catch (e) { alert(e.message || e); }
+}
+function printRoster() {
+  document.body.classList.add('print-roster');
+  const done = () => { document.body.classList.remove('print-roster'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done); window.print();
 }
 
 /* ---------- 이벤트 ---------- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT') return;
   const v = b.dataset.v, a = b.dataset.act;
-  if (a === 'page') { S.page = v; S.search = ''; history.replaceState(null, '', '#' + v); window.scrollTo({ top: 0 }); }
+  if (a === 'page') { if (!canGo(v)) return; S.page = v; S.search = ''; history.replaceState(null, '', '#' + v); window.scrollTo({ top: 0 }); }
   else if (a === 'year') S.year = v === 'all' ? 'all' : +v;
   else if (a === 'qall') S.ms = [];
   else if (a === 'q') { const mm = [0, 1, 2].map(k => +v * 3 - 2 + k), all = mm.every(x => S.ms.includes(x)); S.ms = all ? S.ms.filter(x => !mm.includes(x)) : [...new Set([...S.ms, ...mm])]; }
@@ -325,6 +455,9 @@ document.addEventListener('click', e => {
   else if (a === 'grp') S.grp = v;
   else if (a === 'view') S.view = v;
   else if (a === 'print') { window.print(); return; }
+  else if (a === 'rv') S.rv = v;
+  else if (a === 'xl') { exportRoster(); return; }
+  else if (a === 'printroster') { printRoster(); return; }
   else if (a === 'kind') S.kind[v] = !S.kind[v];
   else if (a === 'unlock') { const pw = $('pw').value; if (!pw) return; S.pw = pw; if (SAMPLE) { LOCKED = false; render(); return; } load(pw); return; }
   render();
@@ -342,8 +475,20 @@ document.addEventListener('input', e => {
   const q = $('q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'pw') document.querySelector('[data-act=unlock]').click(); });
-$('refresh').onclick = () => load(S.pw);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) load(S.pw); });
-setInterval(() => load(S.pw), (CFG.REFRESH_MIN || 5) * 60000);
+$('refresh').onclick = () => reload();
+$('logout').onclick = () => logout();
+$('lgf').addEventListener('submit', async e => {
+  e.preventDefault();
+  const pw = $('lgpw').value.trim(); if (!pw) return;
+  $('lgok').disabled = true; S.pwErr = ''; $('lgerr').textContent = '확인 중… (처음에는 30초 정도 걸릴 수 있습니다)';
+  S.pw = pw; S.idt = ''; S.me = null;
+  await load(pw);
+  if (role() === 'admin') { $('lgpw').value = ''; $('lgerr').textContent = ''; } else { $('lgerr').textContent = S.pwErr || '로그인하지 못했습니다. 잠시 후 다시 시도하세요.'; }
+  $('lgok').disabled = false;
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reload(); });
+setInterval(() => reload(), (CFG.REFRESH_MIN || 5) * 60000);
 { const h = location.hash.slice(1); if (PAGES.some(p => p[0] === h)) S.page = h; }
-nav(); load(S.pw);
+nav(); render();
+if (S.idt) loadGoogle(S.idt); else if (S.pw) load(S.pw); else if (!CFG.API_URL) load('');
+initGoogle();

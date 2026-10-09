@@ -4,6 +4,9 @@ window.CME_CONFIG = {
   // Apps Script 웹앱 주소 (README 2단계에서 복사, 끝이 /exec). 비워 두면 sample.json(익명 샘플)을 표시합니다.
   API_URL: 'https://script.google.com/macros/s/AKfycbyGyb9wnfPgaMcjcY3TYOJgzZ6rjYJFuSoKiEXI9bJ5pnu5jn1qa_che8Ia5MSvUvl6Wg/exec',
 
+  // 부서 관리자(간호국·파트장) 구글 로그인용 OAuth 클라이언트 ID (직무교육 대시보드와 같은 값, 서버 스크립트 속성 GOOGLE_CLIENT_ID 와 동일)
+  GOOGLE_CLIENT_ID: '497800427820-0jftci511sots7lcfv2533hnfnnfudpp.apps.googleusercontent.com',
+
   // 자동 새로고침 주기(분)
   REFRESH_MIN: 5,
 
